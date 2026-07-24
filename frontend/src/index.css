@@ -1,0 +1,116 @@
+@import "tailwindcss";
+@import "flowbite-react/plugin/tailwindcss";
+@source "../.flowbite-react/class-list.json";
+
+/* Tailwind v4 defaults to OS-level (prefers-color-scheme) dark mode. Flowbite's
+   toggle instead flips a literal `dark` class on <html>, so the `dark:` variant
+   has to be redefined to key off that class rather than the media query. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* Flowbite React's own components (Button, Navbar active link, Checkbox, Radio,
+     TextInput focus ring, Tabs, ToggleSwitch, Spinner, Progress, …) key their default
+     styling off a semantic "primary" Tailwind color scale rather than a hardcoded blue.
+     Defining it here — anchored so 700/800 are our exact brand hex — makes every
+     Flowbite component read as on-brand out of the box, no per-instance overrides. */
+  --color-primary-50: #fef2f1;
+  --color-primary-100: #fde0de;
+  --color-primary-200: #fac1bc;
+  --color-primary-300: #f7948d;
+  --color-primary-400: #f35e54;
+  --color-primary-500: #f03629;
+  --color-primary-600: #ee2416;
+  --color-primary-700: var(--brand-red);
+  --color-primary-800: var(--brand-red-dark);
+  --color-primary-900: #801109;
+  --color-primary-950: #510b06;
+
+  /* HelloMama brand tokens */
+  --color-brand-red: var(--brand-red);
+  --color-brand-red-tint: var(--brand-red-tint);
+  --color-brand-red-dark: var(--brand-red-dark);
+
+  --color-text-charcoal: var(--text-charcoal);
+  --color-text-muted: var(--text-muted);
+
+  --color-background-white: var(--background-white);
+  --color-background-offwhite: var(--background-offwhite);
+
+  --color-neutral-surface: var(--neutral-surface);
+  --color-neutral-border: var(--neutral-border);
+
+  --color-verify-green: var(--verify-green);
+  --color-verify-green-bg: var(--verify-green-bg);
+  --color-verify-gold: var(--verify-gold);
+  --color-verify-gold-bg: var(--verify-gold-bg);
+
+  --color-sos-fill: var(--sos-fill);
+  --color-sos-accent: var(--sos-accent);
+
+  --radius-card: 28px;
+  --radius-panel: 16px;
+  --radius-pill: 18px;
+}
+
+:root {
+  /* Tells the browser which palette is active so native UI it draws itself —
+     scrollbars, form control chrome, etc. — matches instead of defaulting to
+     light. Media-query-based auto dark mode wouldn't need this, but our toggle
+     drives a manual `.dark` class instead, so the browser has no way to know. */
+  color-scheme: light;
+
+  --brand-red: #de1e10;
+  --brand-red-tint: #fae8e4;
+  --brand-red-dark: #a8160c;
+
+  --text-charcoal: #252527;
+  --text-muted: #6b6b70;
+
+  --background-white: #ffffff;
+  --background-offwhite: #fafafa;
+
+  --neutral-surface: #f5f4f2;
+  --neutral-border: #e3dedb;
+
+  --verify-green: #4a8552;
+  --verify-green-bg: #e5f2e5;
+  --verify-gold: #b28c33;
+  --verify-gold-bg: #faf0d9;
+
+  --sos-fill: #1a1a1a;
+  --sos-accent: #de1e10;
+}
+
+.dark {
+  color-scheme: dark;
+
+  --brand-red-tint: #3a1512;
+
+  --text-charcoal: #f2f1ef;
+  --text-muted: #9a999e;
+
+  --background-white: #1f2023;
+  --background-offwhite: #17181b;
+
+  --neutral-surface: #26272b;
+  --neutral-border: #34353a;
+
+  --verify-green-bg: #1c2e1f;
+  --verify-gold-bg: #2e2818;
+
+  --sos-fill: #0d0d0f;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--background-offwhite);
+  color: var(--text-charcoal);
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100svh;
+}
