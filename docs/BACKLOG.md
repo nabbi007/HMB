@@ -49,8 +49,9 @@ Build order = top to bottom. Later epics depend on earlier ones.
 
 ### EPIC 1 — Auth & accounts
 
-**HMB-10 · User model + roles — (S) BE**
+**HMB-10 · User model + roles — (S) BE — ✅ DONE**
 - Done when: `users` table with role enum (nurse|mother|admin), phone, email, password_hash, timestamps; migration applied.
+- Built: `app/models/user.py` (UUID id, role enum, phone-first identity, `is_active`, `phone_verified`), migration `0001_users`, password hashing `app/core/security.py`, controlled admin creation `scripts/create_admin.py` (admins never self-register). Tests in `tests/test_security.py`.
 
 **HMB-11 · Signup + login (JWT) — (M) BE**
 - Story: As a user, I can register and log in.
@@ -79,8 +80,11 @@ Build order = top to bottom. Later epics depend on earlier ones.
 
 ### EPIC 2 — Profiles
 
-**HMB-20 · Profile models + migrations — (S) BE**
+**HMB-20 · Profile models + migrations — (S) BE — ✅ DONE**
 - Done when: `nurse_profiles` (photo_url, bio, job_description, daily_rate, location geo point, community, verification_status, avg_rating) and `mother_profiles` (location, community, children_info) created.
+- Built (nurse): `app/models/nurse_profile.py` + migration `0002_nurse_profiles`. Verification lifecycle `pending→verified/rejected` (starts pending, invisible to search), `verified_at`/`verified_by_id` light audit. **NMC PIN** (Ghana Nursing & Midwifery Council reg number the nurse already holds) stored **encrypted** (reversible, so admin can read + check the register) via `app/core/crypto.py`, plus a keyed **blind index** for one-PIN-per-nurse uniqueness. Tests in `tests/test_crypto.py`.
+- Built (mother): `app/models/mother_profile.py` + migration `0003_mother_profiles`. Minimal sensitive `number_of_children`/`children_notes` (API-gated, not public), `community`, plus `avg_rating`/`review_count` (reviews run both ways).
+- Deferred: exact-location geo point → HMB-30; `require_verified_nurse` authorization gate → wired once auth (HMB-11) exists.
 
 **HMB-21 · Photo/document upload — (M) BE**
 - Story: As a nurse, I upload my passport photo and profile picture.

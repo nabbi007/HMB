@@ -20,6 +20,12 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 30
     refresh_token_expire_days: int = 30
 
+    # Nurse PIN encryption (reversible — admins must read the PIN to verify it).
+    # Generate a real key for prod:
+    #   python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    pin_encryption_key: str = ""  # empty => dev fallback key (see app/core/crypto.py)
+    pin_index_key: str = "dev-pin-index-key-change-me"  # HMAC key for the blind index
+
     # CORS (comma-separated origins)
     cors_origins: str = "http://localhost:3000"
 
