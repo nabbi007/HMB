@@ -1,8 +1,12 @@
 import { NavLink } from "react-router-dom"
 import { cn } from "@/lib/utils"
-import { navLinks } from "./nav-links"
+import { useRole } from "@/lib/role-context"
+import { getNavLinks } from "./nav-links"
 
 export function BottomTabBar() {
+  const { role } = useRole()
+  const navLinks = getNavLinks(role)
+
   return (
     <nav className="z-20 flex h-[76px] w-full shrink-0 items-stretch justify-around border-t border-neutral-border bg-background-white pb-[env(safe-area-inset-bottom)] md:hidden">
       {navLinks.map(({ to, label, end, icon: Icon, badge }) => (

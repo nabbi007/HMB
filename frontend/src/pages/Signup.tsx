@@ -6,24 +6,37 @@ import { AuthLayout } from "@/components/auth/AuthLayout"
 const fieldClassName =
   "[&_input]:rounded-panel [&_input]:border-neutral-border [&_input]:bg-neutral-surface [&_input]:text-text-charcoal [&_input]:focus:border-brand-red [&_input]:focus:ring-brand-red"
 
-export default function Login() {
+export default function Signup() {
   const navigate = useNavigate()
+  const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    // No real auth yet — any submitted credentials just log the mock user in.
-    navigate("/")
+    // No real auth yet — creating an account moves straight to role selection.
+    navigate("/onboarding")
   }
 
   return (
-    <AuthLayout title="Welcome back" subtitle="Sign in to find and book trusted care.">
+    <AuthLayout title="Create your account" subtitle="Find trusted, verified care in minutes.">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div>
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="name">Full name</Label>
           <TextInput
-            id="email"
+            id="name"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ama Boateng"
+            className={`mt-1.5 ${fieldClassName}`}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="signup-email">Email</Label>
+          <TextInput
+            id="signup-email"
             type="email"
             required
             value={email}
@@ -34,32 +47,27 @@ export default function Login() {
         </div>
 
         <div>
-          <div className="flex items-center justify-between">
-            <Label htmlFor="password">Password</Label>
-            <a href="#" className="text-xs font-medium text-brand-red hover:underline">
-              Forgot password?
-            </a>
-          </div>
+          <Label htmlFor="signup-password">Password</Label>
           <TextInput
-            id="password"
+            id="signup-password"
             type="password"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
+            placeholder="At least 8 characters"
             className={`mt-1.5 ${fieldClassName}`}
           />
         </div>
 
         <Button type="submit" color="default" fullSized className="mt-2">
-          Sign in
+          Create account
         </Button>
       </form>
 
       <p className="mt-6 text-center text-sm text-text-muted">
-        Don&apos;t have an account?{" "}
-        <Link to="/signup" className="font-medium text-brand-red hover:underline">
-          Sign up
+        Already have an account?{" "}
+        <Link to="/login" className="font-medium text-brand-red hover:underline">
+          Sign in
         </Link>
       </p>
     </AuthLayout>

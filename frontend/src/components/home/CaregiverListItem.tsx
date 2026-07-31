@@ -1,8 +1,9 @@
 import { Avatar, Badge } from "flowbite-react"
 import { Link } from "react-router-dom"
-import { cn, withDark } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { avatarSizeTheme } from "@/lib/avatar-theme"
-import type { AvailabilityStatus, Caregiver } from "@/lib/mock-data"
+import { availabilityBadgeTheme } from "./availability-badge-theme"
+import type { Caregiver } from "@/lib/mock-data"
 
 // Verification tier (green/gold) is shown on the avatar ring — it's a trust signal
 // about the caregiver, separate from availability. The badge shows availability
@@ -11,23 +12,6 @@ const tierRing = {
   green: "ring-verify-green",
   gold: "ring-verify-gold",
 } as const
-
-// Badge's default color variants ship their own `hover:bg-*`/`dark:*` classes —
-// a leftover "is this clickable?" affordance that doesn't belong on a status label.
-// Its `theme` prop merges with those via twMerge rather than replacing them, so the
-// override needs to name every state (incl. hover) and its own `dark:` twins (via
-// withDark) to actually cancel them out.
-const availabilityBadgeTheme: Record<AvailabilityStatus, object> = {
-  "Available": {
-    root: { color: { info: withDark("bg-verify-green-bg text-verify-green hover:bg-verify-green-bg") } },
-  },
-  Today: {
-    root: { color: { info: withDark("bg-verify-gold-bg text-verify-gold hover:bg-verify-gold-bg") } },
-  },
-  "This week": {
-    root: { color: { info: withDark("bg-neutral-surface text-text-muted hover:bg-neutral-surface") } },
-  },
-}
 
 export function CaregiverListItem({
   caregiver,
@@ -40,7 +24,7 @@ export function CaregiverListItem({
     <div
       onMouseEnter={() => onHover?.(caregiver.id)}
       onMouseLeave={() => onHover?.(null)}
-      className="relative flex w-full items-center gap-3.5 border-t border-neutral-border py-4.5 transition-colors first:border-t-0 hover:bg-neutral-surface"
+      className="relative flex w-full items-center gap-3.5 rounded-2xl bg-neutral-surface p-4 transition-colors hover:bg-neutral-border/60"
     >
       <Avatar
         rounded
@@ -75,10 +59,6 @@ export function CaregiverListItem({
         </div>
         <span className="text-sm text-text-muted">
           {caregiver.role} · {caregiver.specialty}
-        </span>
-        <span className="text-sm text-text-muted">
-          ★ {caregiver.rating.toFixed(1)} ({caregiver.reviewCount}) · {caregiver.distanceKm} km ·
-          GHS {caregiver.priceGhsPerHour}/hr
         </span>
       </div>
     </div>

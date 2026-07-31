@@ -10,7 +10,7 @@ export function PagePlaceholder({
       <p className="text-xs font-medium tracking-wide text-brand-red uppercase">
         Coming up next
       </p>
-      <h1 className="text-2xl font-bold text-text-charcoal">{title}</h1>
+      <h1 className="text-xl font-bold text-text-charcoal md:text-2xl">{title}</h1>
       <p className="max-w-md text-sm text-text-muted">{description}</p>
     </div>
   )

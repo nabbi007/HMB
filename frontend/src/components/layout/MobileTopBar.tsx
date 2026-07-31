@@ -1,10 +1,11 @@
 import { Avatar, DarkThemeToggle } from "flowbite-react"
 import { NavLink } from "react-router-dom"
-import { HiOutlineBell } from "react-icons/hi2"
+import { MoonIcon, SunIcon } from "@/lib/icons"
 import { cn } from "@/lib/utils"
 import { initialsAvatarTheme } from "@/lib/avatar-theme"
 import { Logo } from "./Logo"
 import { navIconButtonClass } from "./NavIconButton"
+import { NotificationsPopover } from "./NotificationsPopover"
 
 export function MobileTopBar() {
   return (
@@ -12,16 +13,16 @@ export function MobileTopBar() {
       <Logo className="h-6" />
 
       <div className="flex items-center gap-1">
-        <DarkThemeToggle className={cn(navIconButtonClass, "size-8")} />
+        <DarkThemeToggle
+          className={cn(navIconButtonClass, "size-8")}
+          iconDark={SunIcon}
+          iconLight={MoonIcon}
+        />
 
-        <button
-          type="button"
-          aria-label="Notifications"
-          className={cn("relative", navIconButtonClass, "size-8")}
-        >
-          <HiOutlineBell />
-          <span className="absolute top-1.5 right-1.5 size-1.5 rounded-full bg-brand-red" />
-        </button>
+        <NotificationsPopover
+          buttonClassName={cn(navIconButtonClass, "size-8")}
+          panelClassName="fixed top-[64px] right-4"
+        />
 
         <NavLink to="/profile" aria-label="Profile" className="ml-1">
           <Avatar rounded size="sm" placeholderInitials="A" theme={initialsAvatarTheme("bg-brand-red")} />

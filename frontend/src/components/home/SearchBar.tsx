@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react"
-import { HiOutlineAdjustmentsHorizontal, HiOutlineMagnifyingGlass } from "react-icons/hi2"
+import { FilterIcon, SearchIcon } from "@/lib/icons"
 import { cn } from "@/lib/utils"
 import { FilterChipsRow } from "./FilterChipsRow"
 
@@ -31,7 +31,7 @@ export function SearchBar({
   return (
     <div ref={containerRef} className="relative">
       <div className="flex items-center gap-2 rounded-panel bg-neutral-surface py-1 pr-1 pl-4.5">
-        <HiOutlineMagnifyingGlass className="size-4 shrink-0 text-text-muted" />
+        <SearchIcon className="size-4 shrink-0 text-text-muted" />
         <input
           value={search}
           onChange={(e) => onSearchChange(e.target.value)}
@@ -49,7 +49,7 @@ export function SearchBar({
             open && "bg-neutral-border/60 text-text-charcoal"
           )}
         >
-          <HiOutlineAdjustmentsHorizontal className="size-5" />
+          <FilterIcon className="size-5" />
           {activeFilters.size > 0 ? (
             <span className="absolute top-1 right-1 size-1.5 rounded-full bg-brand-red" />
           ) : null}
