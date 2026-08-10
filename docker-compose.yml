@@ -18,9 +18,16 @@ services:
   api:
     build: ./backend
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    # SMTP (and any other secrets) come from backend/.env — gitignored.
+    # For local Mailpit instead of real email, set SMTP_HOST=mailpit / SMTP_PORT=1025
+    # / SMTP_STARTTLS=false / SMTP_SSL=false in that file.
+    env_file:
+      - ./backend/.env
     environment:
       DATABASE_URL: postgresql+psycopg://hmb:hmb@db:5432/hmb
-      CORS_ORIGINS: http://localhost:3000
+      # Allow the compose-served frontend (5173) and native Vite dev (also 5173).
+      # Both localhost and 127.0.0.1 — browsers treat them as different origins.
+      CORS_ORIGINS: http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000
     ports:
       - "8000:8000"
     volumes:
@@ -28,6 +35,26 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  # Mailpit: fake SMTP server that catches every outgoing email for local dev.
+  # SMTP on 1025, web inbox UI on http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8000
+        VITE_MAPBOX_TOKEN: ${VITE_MAPBOX_TOKEN:-}
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
 
 volumes:
   pgdata:

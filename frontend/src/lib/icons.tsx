@@ -8,6 +8,8 @@ import {
   CloseCircle,
   Danger,
   DocumentUpload,
+  Eye,
+  EyeSlash,
   Heart,
   Home,
   Logout,
@@ -67,3 +69,5 @@ export const AddIcon = bold(Add)
 export const TrashIcon = bold(Trash)
 export const StarIcon = bold(Star)
 export const ChevronDownIcon = bold(ArrowDown2)
+export const EyeIcon = bold(Eye)
+export const EyeSlashIcon = bold(EyeSlash)

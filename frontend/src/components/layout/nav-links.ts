@@ -14,17 +14,22 @@ export interface NavLinkItem {
 // parent-facing map search, or the caregiver's own dashboard. Caregivers don't
 // get a separate "Bookings" tab since the dashboard's Requests/Earnings tabs
 // already cover that ground.
-export function getNavLinks(role: Role): NavLinkItem[] {
+//
+// An UNVERIFIED caregiver only gets Home (their dashboard, which shows the
+// verification gate) — task tabs like Messages stay hidden until HMB approves
+// them, matching the route guards.
+export function getNavLinks(role: Role, caregiverVerified = false): NavLinkItem[] {
   if (role === "caregiver") {
-    return [
-      { to: "/dashboard", label: "Home", icon: HomeIcon, end: true },
-      { to: "/messages", label: "Messages", icon: MessageIcon, end: false, badge: 2 },
-    ]
+    const links: NavLinkItem[] = [{ to: "/dashboard", label: "Home", icon: HomeIcon, end: true }]
+    if (caregiverVerified) {
+      links.push({ to: "/messages", label: "Messages", icon: MessageIcon, end: false })
+    }
+    return links
   }
 
   return [
     { to: "/", label: "Home", icon: HomeIcon, end: true },
     { to: "/bookings", label: "Bookings", icon: CalendarIcon, end: false },
-    { to: "/messages", label: "Messages", icon: MessageIcon, end: false, badge: 2 },
+    { to: "/messages", label: "Messages", icon: MessageIcon, end: false },
   ]
 }

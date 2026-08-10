@@ -14,7 +14,10 @@ def health() -> dict[str, str]:
 
 @router.get("/health/db")
 def health_db(db: Session = Depends(get_db)) -> dict[str, str]:
-    """Confirms the DB connection and that PostGIS is available."""
+    """Confirms the DB connection. PostGIS is optional (the schema uses lat/lng, not geometry)."""
     db.execute(text("SELECT 1"))
-    postgis = db.execute(text("SELECT PostGIS_Version()")).scalar()
-    return {"status": "ok", "postgis": str(postgis)}
+    try:
+        postgis = str(db.execute(text("SELECT PostGIS_Version()")).scalar())
+    except Exception:  # noqa: BLE001 - PostGIS not installed is fine
+        postgis = "unavailable"
+    return {"status": "ok", "postgis": postgis}

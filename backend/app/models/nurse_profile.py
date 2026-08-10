@@ -12,7 +12,7 @@ from sqlalchemy import (
     Text,
     func,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -53,15 +53,26 @@ class NurseProfile(Base):
     # Encrypted (reversible) so an admin can read it to check the official register.
     pin_encrypted: Mapped[str | None] = mapped_column(Text, nullable=True)
     # Blind index (keyed HMAC) — enforces one-PIN-per-nurse without decrypting.
-    pin_index: Mapped[str | None] = mapped_column(String(64), unique=True, index=True, nullable=True)
+    pin_index: Mapped[str | None] = mapped_column(
+        String(64), unique=True, index=True, nullable=True
+    )
 
     # --- Profile content ---
     bio: Mapped[str | None] = mapped_column(Text, nullable=True)
     job_description: Mapped[str | None] = mapped_column(Text, nullable=True)
     daily_rate: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
+    # Values-matching attributes (searchable).
+    languages: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    religion: Mapped[str | None] = mapped_column(String(60), nullable=True)
+    care_type: Mapped[str | None] = mapped_column(String(60), nullable=True)
     profile_photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     passport_photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    # Optional uploaded certifications/licenses: list of {"name": str, "url": str}.
+    certifications: Mapped[list | None] = mapped_column(JSONB, nullable=True)
     community: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # Approximate location (from place autocomplete). Public-facing area, not exact home.
+    latitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
 
     # --- Reputation ---
     avg_rating: Mapped[float] = mapped_column(

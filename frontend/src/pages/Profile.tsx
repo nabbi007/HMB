@@ -1,64 +1,580 @@
-import { useState } from "react"
-import { Button, ToggleSwitch, useThemeMode } from "flowbite-react"
+import { useEffect, useRef, useState } from "react"
+import { Button, Label, TextInput, Textarea, ToggleSwitch, useThemeMode } from "flowbite-react"
 import { useNavigate } from "react-router-dom"
-import { LogoutIcon } from "@/lib/icons"
-import { withDark } from "@/lib/utils"
+import { AddIcon, LogoutIcon, TrashIcon, UploadIcon, VerifiedIcon } from "@/lib/icons"
+import { api, ApiError, mediaUrl, uploadFile } from "@/lib/api"
+import { useRole } from "@/lib/role-context"
+import { PlaceAutocomplete } from "@/components/common/PlaceAutocomplete"
 
-export const currentUser = {
-  name: "Adwoa Darko",
-  email: "adwoa.darko@gmail.com",
-  phone: "+233 20 555 0142",
-  location: "Osu, Accra",
-  avatarUrl: "https://i.pravatar.cc/150?img=32",
+interface NurseProfile {
+  bio: string | null
+  job_description: string | null
+  daily_rate: number | string | null
+  community: string | null
+  latitude: number | string | null
+  longitude: number | string | null
+  languages: string[] | null
+  religion: string | null
+  care_type: string | null
+  profile_photo_url: string | null
+  verification_status: string
+  has_pin: boolean
 }
 
-// Button's "light" color ships its own `dark:bg-gray-800` classes. Its `theme` prop
-// merges with those via twMerge rather than replacing them, so the override needs
-// its own `dark:` twins (via withDark) to actually cancel them out.
-const lightButtonTheme = {
-  color: {
-    light: withDark("border-neutral-border bg-background-white text-text-charcoal hover:bg-neutral-surface"),
-  },
+interface MotherProfile {
+  community: string | null
+  latitude: number | string | null
+  longitude: number | string | null
+  number_of_children: number | null
+  children_notes: string | null
 }
+
+interface Child {
+  id: string
+  name: string
+  age_years: number | null
+  allergies: string | null
+  notes: string | null
+}
+
+function initials(name: string): string {
+  return (
+    name
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase())
+      .join("") || "?"
+  )
+}
+
+const fieldClassName =
+  "[&_input]:rounded-panel [&_input]:border-neutral-border [&_input]:bg-neutral-surface [&_textarea]:rounded-panel [&_textarea]:border-neutral-border [&_textarea]:bg-neutral-surface"
 
 export default function Profile() {
   const navigate = useNavigate()
+  const { user, role, token, logout, refreshUser } = useRole()
   const { computedMode, toggleMode } = useThemeMode()
   const [pushEnabled, setPushEnabled] = useState(true)
   const [emailEnabled, setEmailEnabled] = useState(true)
+
+  const isNurse = role === "caregiver"
+  const name = user?.full_name ?? "—"
+  const roleLabel = isNurse ? "Caregiver" : "Parent"
+
+  // Real profile data from the backend.
+  const [hasPin, setHasPin] = useState(false)
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const photoInputRef = useRef<HTMLInputElement>(null)
+
+  async function changePhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setError(null)
+    try {
+      const { url } = await uploadFile(file, token ?? undefined)
+      await api("/api/v1/nurses/me", {
+        method: "PATCH",
+        body: { profile_photo_url: url },
+        token: token ?? undefined,
+      })
+      setPhotoUrl(mediaUrl(url) ?? null)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.detail : "Couldn't update photo.")
+    }
+  }
+  const [form, setForm] = useState({
+    phone: "",
+    bio: "",
+    job_description: "",
+    daily_rate: "",
+    community: "",
+    latitude: "",
+    longitude: "",
+    care_type: "",
+    languages: "",
+    religion: "",
+    nmc_pin: "",
+    number_of_children: "",
+    children_notes: "",
+  })
+
+  // Keep the editable phone field in sync with the account.
+  useEffect(() => {
+    setForm((f) => ({ ...f, phone: user?.phone ?? "" }))
+  }, [user?.phone])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // Children (mothers only)
+  const [children, setChildren] = useState<Child[]>([])
+  const [childName, setChildName] = useState("")
+  const [childAge, setChildAge] = useState("")
+  const [childAllergies, setChildAllergies] = useState("")
+  const [childNotes, setChildNotes] = useState("")
+  const [childErr, setChildErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!token) return
+    const path = isNurse ? "/api/v1/nurses/me" : "/api/v1/mothers/me"
+    api<NurseProfile & MotherProfile>(path, { token })
+      .then((p) => {
+        setForm((f) => ({
+          ...f,
+          bio: p.bio ?? "",
+          job_description: p.job_description ?? "",
+          daily_rate: p.daily_rate != null ? String(p.daily_rate) : "",
+          community: p.community ?? "",
+          latitude: p.latitude != null ? String(p.latitude) : "",
+          longitude: p.longitude != null ? String(p.longitude) : "",
+          care_type: p.care_type ?? "",
+          religion: p.religion ?? "",
+          languages: p.languages ? p.languages.join(", ") : "",
+          number_of_children: p.number_of_children != null ? String(p.number_of_children) : "",
+          children_notes: p.children_notes ?? "",
+        }))
+        setHasPin(Boolean(p.has_pin))
+        if (p.profile_photo_url) setPhotoUrl(mediaUrl(p.profile_photo_url) ?? null)
+      })
+      .catch(() => setError("Could not load your profile."))
+      .finally(() => setLoading(false))
+  }, [token, isNurse])
+
+  // Load the mother's children.
+  useEffect(() => {
+    if (isNurse || !token) return
+    api<Child[]>("/api/v1/mothers/me/children", { token })
+      .then(setChildren)
+      .catch(() => {})
+  }, [isNurse, token])
+
+  async function addChild(e: React.FormEvent) {
+    e.preventDefault()
+    setChildErr(null)
+    if (!childName.trim()) return
+    try {
+      const created = await api<Child>("/api/v1/mothers/me/children", {
+        method: "POST",
+        token: token ?? undefined,
+        body: {
+          name: childName.trim(),
+          age_years: childAge.trim() ? Number(childAge) : null,
+          allergies: childAllergies.trim() || null,
+          notes: childNotes.trim() || null,
+        },
+      })
+      setChildren((prev) => [...prev, created])
+      setChildName("")
+      setChildAge("")
+      setChildAllergies("")
+      setChildNotes("")
+    } catch (err) {
+      setChildErr(err instanceof ApiError ? err.detail : "Could not add child.")
+    }
+  }
+
+  async function removeChild(id: string) {
+    await api(`/api/v1/mothers/me/children/${id}`, { method: "DELETE", token: token ?? undefined })
+    setChildren((prev) => prev.filter((c) => c.id !== id))
+  }
+
+  function set(field: keyof typeof form, value: string) {
+    setForm((f) => ({ ...f, [field]: value }))
+    setSaved(false)
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setError(null)
+    setSaved(false)
+    try {
+      // Phone lives on the account (email is not editable here).
+      const trimmedPhone = form.phone.trim()
+      if (trimmedPhone && trimmedPhone !== user?.phone) {
+        await api("/api/v1/auth/me", {
+          method: "PATCH",
+          body: { phone: trimmedPhone },
+          token: token ?? undefined,
+        })
+        await refreshUser()
+      }
+
+      if (isNurse) {
+        const payload: Record<string, unknown> = {
+          bio: form.bio || null,
+          job_description: form.job_description || null,
+          community: form.community || null,
+        }
+        if (form.daily_rate.trim()) payload.daily_rate = form.daily_rate.trim()
+        if (form.nmc_pin.trim()) payload.nmc_pin = form.nmc_pin.trim()
+        payload.care_type = form.care_type || null
+        payload.religion = form.religion || null
+        const langs = form.languages
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+        payload.languages = langs.length ? langs : null
+        if (form.latitude && form.longitude) {
+          payload.latitude = Number(form.latitude)
+          payload.longitude = Number(form.longitude)
+        }
+        const updated = await api<NurseProfile>("/api/v1/nurses/me", {
+          method: "PATCH",
+          body: payload,
+          token: token ?? undefined,
+        })
+        setHasPin(updated.has_pin)
+        set("nmc_pin", "")
+      } else {
+        const payload: Record<string, unknown> = {
+          community: form.community || null,
+        }
+        if (form.latitude && form.longitude) {
+          payload.latitude = Number(form.latitude)
+          payload.longitude = Number(form.longitude)
+        }
+        await api("/api/v1/mothers/me", {
+          method: "PATCH",
+          body: payload,
+          token: token ?? undefined,
+        })
+      }
+      setSaved(true)
+    } catch (err) {
+      setError(err instanceof ApiError ? err.detail : "Could not save. Try again.")
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function handleLogout() {
+    logout()
+    navigate("/login", { replace: true })
+  }
 
   return (
     <div className="h-full overflow-y-auto bg-background-offwhite">
       <div className="mx-auto max-w-2xl px-6 py-8 md:px-10 md:py-10">
         <h1 className="text-xl font-bold text-text-charcoal md:text-2xl">Profile</h1>
 
-        {/* Header */}
+        {/* Identity */}
         <div className="mt-6 flex flex-col items-center gap-4 rounded-card bg-background-white p-6 text-center md:flex-row md:text-left">
-          <img
-            src={currentUser.avatarUrl}
-            alt={currentUser.name}
-            className="size-20 shrink-0 rounded-full object-cover"
-          />
-          <div className="min-w-0 flex-1">
-            <p className="text-lg font-semibold text-text-charcoal">{currentUser.name}</p>
-            <p className="text-sm text-text-muted">{currentUser.email}</p>
-            <p className="text-sm text-text-muted">{currentUser.location}</p>
+          <div className="relative shrink-0">
+            {photoUrl ? (
+              <img src={photoUrl} alt={name} className="size-20 rounded-full object-cover" />
+            ) : (
+              <span className="flex size-20 items-center justify-center rounded-full bg-brand-red text-2xl font-bold text-white">
+                {initials(name)}
+              </span>
+            )}
+            {isNurse ? (
+              <>
+                <input
+                  ref={photoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={changePhoto}
+                />
+                <button
+                  type="button"
+                  onClick={() => photoInputRef.current?.click()}
+                  aria-label="Change profile photo"
+                  className="absolute right-0 bottom-0 flex size-7 items-center justify-center rounded-full bg-brand-red text-white ring-2 ring-background-white transition-opacity hover:opacity-90"
+                >
+                  <UploadIcon className="size-3.5" />
+                </button>
+              </>
+            ) : null}
           </div>
-          <Button color="light" theme={lightButtonTheme}>
-            Edit profile
-          </Button>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">
+              <p className="text-lg font-semibold text-text-charcoal">{name}</p>
+              {isNurse && user?.verification_status === "verified" ? (
+                <span className="inline-flex items-center gap-1 rounded-[10px] bg-verify-green-bg px-2 py-0.5 text-xs font-medium text-verify-green">
+                  <VerifiedIcon className="size-3.5" />
+                  Verified
+                </span>
+              ) : null}
+            </div>
+            <p className="text-sm text-text-muted">{user?.email ?? user?.phone}</p>
+            <p className="text-sm text-text-muted">{roleLabel}</p>
+          </div>
         </div>
 
-        {/* Account details */}
+        {/* Account details (read-only, from your account) */}
         <section className="mt-6 rounded-card bg-background-white p-6">
           <h2 className="text-lg font-semibold text-text-charcoal">Account details</h2>
           <dl className="mt-4 flex flex-col divide-y divide-neutral-border">
-            <Row label="Name" value={currentUser.name} />
-            <Row label="Email" value={currentUser.email} />
-            <Row label="Phone" value={currentUser.phone} />
-            <Row label="Location" value={currentUser.location} />
+            <Row label="Account verified" value={user?.phone_verified ? "Yes" : "No"} />
+            {isNurse ? (
+              <Row
+                label="HMB verification"
+                value={user?.verification_status === "verified" ? "Verified" : "Pending"}
+              />
+            ) : null}
           </dl>
         </section>
+
+        {/* Editable profile (real, saved to the backend) */}
+        <section className="mt-6 rounded-card bg-background-white p-6">
+          <h2 className="text-lg font-semibold text-text-charcoal">My profile</h2>
+          {loading ? (
+            <p className="mt-3 text-sm text-text-muted">Loading…</p>
+          ) : (
+            <form onSubmit={handleSave} className={`mt-4 flex flex-col gap-4 ${fieldClassName}`}>
+              {error ? (
+                <p className="rounded-panel bg-brand-red-tint px-3 py-2 text-sm text-brand-red">
+                  {error}
+                </p>
+              ) : null}
+              {saved ? (
+                <p className="rounded-panel bg-verify-green-bg px-3 py-2 text-sm text-verify-green">
+                  Saved.
+                </p>
+              ) : null}
+
+              <div>
+                <Label htmlFor="phone">Phone number</Label>
+                <TextInput
+                  id="phone"
+                  type="tel"
+                  value={form.phone}
+                  onChange={(e) => set("phone", e.target.value)}
+                  placeholder="+233 20 000 0000"
+                  className="mt-1.5"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="email">Email</Label>
+                <TextInput id="email" type="email" value={user?.email ?? ""} disabled readOnly className="mt-1.5" />
+                <p className="mt-1 text-xs text-text-muted">Email can't be changed.</p>
+              </div>
+
+              <div>
+                <Label htmlFor="community">Community / area</Label>
+                <div className="mt-1.5">
+                  <PlaceAutocomplete
+                    id="community"
+                    value={form.community}
+                    onChange={(text) => set("community", text)}
+                    onSelect={(place) => {
+                      setForm((f) => ({
+                        ...f,
+                        community: place.name,
+                        latitude: String(place.lat),
+                        longitude: String(place.lng),
+                      }))
+                      setSaved(false)
+                    }}
+                    placeholder="Start typing — e.g. Dzorwulu, Achimota, Tema…"
+                  />
+                </div>
+                {form.latitude && form.longitude ? (
+                  <p className="mt-1 text-xs text-verify-green">📍 Location set on the map</p>
+                ) : (
+                  <p className="mt-1 text-xs text-text-muted">Pick a place from the list to set your map location</p>
+                )}
+              </div>
+
+              {isNurse ? (
+                <>
+                  <div>
+                    <Label htmlFor="bio">Bio</Label>
+                    <Textarea
+                      id="bio"
+                      rows={3}
+                      value={form.bio}
+                      onChange={(e) => set("bio", e.target.value)}
+                      placeholder="Tell families about your experience"
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="job_description">Services offered</Label>
+                    <Textarea
+                      id="job_description"
+                      rows={2}
+                      value={form.job_description}
+                      onChange={(e) => set("job_description", e.target.value)}
+                      placeholder="e.g. Newborn care, night nursing"
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="daily_rate">Daily rate (GHS)</Label>
+                    <TextInput
+                      id="daily_rate"
+                      type="number"
+                      min="0"
+                      value={form.daily_rate}
+                      onChange={(e) => set("daily_rate", e.target.value)}
+                      placeholder="150"
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="care_type">Care type</Label>
+                    <TextInput
+                      id="care_type"
+                      value={form.care_type}
+                      onChange={(e) => set("care_type", e.target.value)}
+                      placeholder="e.g. Postpartum, Night nurse, Babysitter"
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="languages">Languages (comma-separated)</Label>
+                    <TextInput
+                      id="languages"
+                      value={form.languages}
+                      onChange={(e) => set("languages", e.target.value)}
+                      placeholder="English, Twi, Ga"
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="religion">Religion (optional)</Label>
+                    <TextInput
+                      id="religion"
+                      value={form.religion}
+                      onChange={(e) => set("religion", e.target.value)}
+                      placeholder="Helps families find a shared-values match"
+                      className="mt-1.5"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="nmc_pin">
+                      NMC PIN {hasPin ? "(on file — enter to replace)" : "(required for verification)"}
+                    </Label>
+                    <TextInput
+                      id="nmc_pin"
+                      value={form.nmc_pin}
+                      onChange={(e) => set("nmc_pin", e.target.value)}
+                      placeholder={hasPin ? "•••••• stored securely" : "Your Ghana NMC registration PIN"}
+                      className="mt-1.5"
+                    />
+                  </div>
+                </>
+              ) : null}
+
+              <Button type="submit" color="default" disabled={saving} className="self-start">
+                {saving ? "Saving…" : "Save changes"}
+              </Button>
+            </form>
+          )}
+        </section>
+
+        {/* Children (mothers only) */}
+        {!isNurse ? (
+          <section className="mt-6 rounded-card bg-background-white p-6">
+            <h2 className="text-lg font-semibold text-text-charcoal">My children</h2>
+            <p className="mt-1 text-sm text-text-muted">
+              Shared only with a matched, paid caregiver — never public.
+            </p>
+
+            <div className="mt-4 flex flex-col gap-2">
+              {children.length === 0 ? (
+                <p className="text-sm text-text-muted">No children added yet.</p>
+              ) : (
+                children.map((c) => (
+                  <div
+                    key={c.id}
+                    className="flex items-start justify-between gap-3 rounded-panel bg-neutral-surface p-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-text-charcoal">
+                        {c.name}
+                        {c.age_years != null ? ` · ${c.age_years} yr` : ""}
+                      </p>
+                      {c.allergies ? (
+                        <p className="mt-0.5 text-xs font-medium text-brand-red">
+                          ⚠ Allergies: {c.allergies}
+                        </p>
+                      ) : null}
+                      {c.notes ? <p className="text-xs text-text-muted">{c.notes}</p> : null}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeChild(c.id)}
+                      aria-label={`Remove ${c.name}`}
+                      className="flex size-8 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-neutral-border/40 hover:text-brand-red"
+                    >
+                      <TrashIcon className="size-4" />
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <form onSubmit={addChild} className={`mt-4 flex flex-col gap-3 ${fieldClassName}`}>
+              {childErr ? (
+                <p className="rounded-panel bg-brand-red-tint px-3 py-2 text-sm text-brand-red">
+                  {childErr}
+                </p>
+              ) : null}
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="sm:col-span-2">
+                  <Label htmlFor="child-name">Child's name</Label>
+                  <TextInput
+                    id="child-name"
+                    value={childName}
+                    onChange={(e) => setChildName(e.target.value)}
+                    placeholder="e.g. Kwame"
+                    className="mt-1.5"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="child-age">Age (yrs)</Label>
+                  <TextInput
+                    id="child-age"
+                    type="number"
+                    min="0"
+                    value={childAge}
+                    onChange={(e) => setChildAge(e.target.value)}
+                    placeholder="2"
+                    className="mt-1.5"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="child-allergies">Allergies (optional)</Label>
+                <Textarea
+                  id="child-allergies"
+                  rows={2}
+                  value={childAllergies}
+                  onChange={(e) => setChildAllergies(e.target.value)}
+                  placeholder="e.g. peanuts, penicillin — leave blank if none"
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label htmlFor="child-notes">Routine / other needs (optional)</Label>
+                <Textarea
+                  id="child-notes"
+                  rows={2}
+                  value={childNotes}
+                  onChange={(e) => setChildNotes(e.target.value)}
+                  placeholder="e.g. afternoon nap at 1pm, prefers rice"
+                  className="mt-1.5"
+                />
+              </div>
+              <Button
+                type="submit"
+                color="light"
+                disabled={!childName.trim()}
+                className="self-start"
+              >
+                <AddIcon className="mr-1.5 size-4" />
+                Add child
+              </Button>
+            </form>
+          </section>
+        ) : null}
 
         {/* Preferences */}
         <section className="mt-6 rounded-card bg-background-white p-6">
@@ -66,7 +582,7 @@ export default function Profile() {
           <div className="mt-4 flex flex-col divide-y divide-neutral-border">
             <ToggleRow
               label="Push notifications"
-              description="Booking updates and caregiver messages"
+              description="Booking updates and messages"
               checked={pushEnabled}
               onChange={setPushEnabled}
             />
@@ -85,24 +601,9 @@ export default function Profile() {
           </div>
         </section>
 
-        {/* Payment */}
-        <section className="mt-6 rounded-card bg-background-white p-6">
-          <h2 className="text-lg font-semibold text-text-charcoal">Payment methods</h2>
-          <div className="mt-4 flex items-center justify-between gap-3 rounded-panel bg-neutral-surface p-4">
-            <div>
-              <p className="text-sm font-medium text-text-charcoal">Visa •••• 4242</p>
-              <p className="text-xs text-text-muted">Used for escrow-held booking payments</p>
-            </div>
-            <button type="button" className="text-sm font-medium text-brand-red hover:underline">
-              Manage
-            </button>
-          </div>
-        </section>
-
-        {/* Sign out */}
         <button
           type="button"
-          onClick={() => navigate("/login")}
+          onClick={handleLogout}
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-panel border border-neutral-border bg-background-white px-5 py-3 text-sm font-semibold text-text-charcoal transition-colors hover:bg-neutral-surface"
         >
           <LogoutIcon className="size-4.5" />

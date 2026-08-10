@@ -8,6 +8,7 @@ encrypted (two-way), not hashed.
 - pin_blind_index: deterministic keyed HMAC — lets us enforce uniqueness and look up a
   PIN without ever decrypting, since the encrypted values differ every time.
 """
+
 import base64
 import hashlib
 import hmac

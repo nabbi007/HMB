@@ -17,32 +17,13 @@ function dateKey(date: Date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`
 }
 
-function addDays(date: Date, days: number) {
-  const next = new Date(date)
-  next.setDate(next.getDate() + days)
-  return next
-}
-
-function seedAvailability(): Record<string, SlotKey[]> {
-  const today = new Date()
-  const all: SlotKey[] = ["morning", "afternoon", "evening", "overnight"]
-  return {
-    [dateKey(today)]: all,
-    [dateKey(addDays(today, 1))]: ["morning", "afternoon"],
-    [dateKey(addDays(today, 2))]: [],
-    [dateKey(addDays(today, 3))]: all,
-    [dateKey(addDays(today, 5))]: ["evening", "overnight"],
-    [dateKey(addDays(today, 7))]: all,
-  }
-}
-
 export function AvailabilityCalendar() {
   const [viewDate, setViewDate] = useState(() => {
     const now = new Date()
     return new Date(now.getFullYear(), now.getMonth(), 1)
   })
   const [selected, setSelected] = useState(() => dateKey(new Date()))
-  const [availability, setAvailability] = useState<Record<string, SlotKey[]>>(seedAvailability)
+  const [availability, setAvailability] = useState<Record<string, SlotKey[]>>({})
 
   const todayKey = dateKey(new Date())
 

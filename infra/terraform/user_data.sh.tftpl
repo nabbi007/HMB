@@ -1,0 +1,68 @@
+#!/bin/bash
+# HMB bootstrap: install Docker, pull the repo, write env, bring the stack up.
+set -euxo pipefail
+exec > /var/log/hmb-bootstrap.log 2>&1
+
+export DEBIAN_FRONTEND=noninteractive
+apt-get update
+apt-get install -y ca-certificates curl git
+
+# --- Docker Engine + Compose plugin ---
+install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo $${VERSION_CODENAME}) stable" > /etc/apt/sources.list.d/docker.list
+apt-get update
+apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+# --- Swap so the frontend build doesn't OOM on small instances ---
+if [ ! -f /swapfile ]; then
+  fallocate -l 2G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile
+  swapon /swapfile
+  echo '/swapfile none swap sw 0 0' >> /etc/fstab
+fi
+
+# --- Clone the app ---
+CLONE_URL="${repo_url}"
+%{ if github_token != "" ~}
+CLONE_URL="https://${github_token}@$${CLONE_URL#https://}"
+%{ endif ~}
+rm -rf /opt/hmb
+git clone --branch "${repo_branch}" "$${CLONE_URL}" /opt/hmb
+cd /opt/hmb
+
+# --- Public IP (IMDSv2) for the same-origin app URL ---
+TOKEN=$(curl -sX PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 300")
+PUBLIC_IP=$(curl -s -H "X-aws-ec2-metadata-token: $${TOKEN}" http://169.254.169.254/latest/meta-data/public-ipv4)
+
+# --- Root env (docker-compose interpolation) ---
+cat > /opt/hmb/.env <<EOF
+POSTGRES_USER=${postgres_user}
+POSTGRES_PASSWORD=${postgres_password}
+POSTGRES_DB=${postgres_db}
+PUBLIC_ORIGIN=http://$${PUBLIC_IP}
+VITE_MAPBOX_TOKEN=${mapbox_token}
+EOF
+
+# --- Backend runtime secrets ---
+cat > /opt/hmb/backend/.env.prod <<EOF
+ENVIRONMENT=production
+DEBUG=false
+JWT_SECRET=${jwt_secret}
+PIN_ENCRYPTION_KEY=${pin_encryption_key}
+PIN_INDEX_KEY=${pin_index_key}
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=${smtp_user}
+SMTP_PASSWORD=${smtp_password}
+SMTP_FROM=${smtp_from}
+SMTP_STARTTLS=true
+SMTP_SSL=false
+EOF
+
+# --- Build & run ---
+docker compose -f docker-compose.prod.yml up -d --build
+
+echo "HMB bootstrap complete at http://$${PUBLIC_IP}"

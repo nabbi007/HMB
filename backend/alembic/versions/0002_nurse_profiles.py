@@ -5,11 +5,13 @@ Revises: 0001_users
 Create Date: 2026-07-24
 
 """
+
 from collections.abc import Sequence
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import postgresql
+
+from alembic import op
 
 revision: str = "0002_nurse_profiles"
 down_revision: str | None = "0001_users"
@@ -39,10 +41,22 @@ def upgrade() -> None:
         sa.Column("profile_photo_url", sa.String(length=500), nullable=True),
         sa.Column("passport_photo_url", sa.String(length=500), nullable=True),
         sa.Column("community", sa.String(length=120), nullable=True),
-        sa.Column("avg_rating", sa.Numeric(precision=2, scale=1), server_default="0", nullable=False),
+        sa.Column(
+            "avg_rating", sa.Numeric(precision=2, scale=1), server_default="0", nullable=False
+        ),
         sa.Column("review_count", sa.Integer(), server_default="0", nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
-        sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column(
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
+        sa.Column(
+            "updated_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
+        ),
         sa.ForeignKeyConstraint(["user_id"], ["users.id"], ondelete="CASCADE"),
         sa.ForeignKeyConstraint(["verified_by_id"], ["users.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),

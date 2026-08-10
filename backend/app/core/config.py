@@ -26,6 +26,27 @@ class Settings(BaseSettings):
     pin_encryption_key: str = ""  # empty => dev fallback key (see app/core/crypto.py)
     pin_index_key: str = "dev-pin-index-key-change-me"  # HMAC key for the blind index
 
+    # Email / SMTP. Dev uses Mailpit (docker-compose); prod swaps in a real provider.
+    smtp_host: str = "localhost"
+    smtp_port: int = 1025
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = "HelloMamaBetter <no-reply@hmb.app>"
+    smtp_starttls: bool = False  # port 587 STARTTLS (Gmail, SendGrid, …). Mailpit: False.
+    smtp_ssl: bool = False  # port 465 implicit SSL. Use instead of starttls, not both.
+
+    # One-time passcodes (account verification)
+    otp_length: int = 6
+    otp_expire_minutes: int = 10
+    otp_max_attempts: int = 5
+    otp_resend_cooldown_seconds: int = 30
+
+    # Uploads. Dev stores files on disk and serves them at /uploads; prod swaps the
+    # storage service (app/services/storage.py) for R2/Supabase presigned URLs.
+    upload_dir: str = "uploads"
+    upload_base_url: str = "/uploads"
+    max_upload_mb: int = 5
+
     # CORS (comma-separated origins)
     cors_origins: str = "http://localhost:3000"
 

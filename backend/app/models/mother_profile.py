@@ -23,10 +23,15 @@ class MotherProfile(Base):
     # Public-ish location: the area used to find nearby nurses.
     # (Exact geo point is added in HMB-30 and stays gated behind a confirmed booking.)
     community: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # Location (from place autocomplete) — centres her map / used to find nearby nurses.
+    latitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
 
     # --- Sensitive: information about minors. API-gated (mother / matched nurse / admin). ---
     number_of_children: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    children_notes: Mapped[str | None] = mapped_column(Text, nullable=True)  # ages, allergies, needs
+    children_notes: Mapped[str | None] = mapped_column(
+        Text, nullable=True
+    )  # ages, allergies, needs
 
     # --- Reputation (reviews run both ways, so nurses can see a mother's rating) ---
     avg_rating: Mapped[float] = mapped_column(

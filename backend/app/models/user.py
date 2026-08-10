@@ -18,12 +18,11 @@ class UserRole(str, enum.Enum):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
-    )
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole, name="user_role"), nullable=False)
 
-    full_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    first_name: Mapped[str] = mapped_column(String(60), nullable=False)
+    last_name: Mapped[str] = mapped_column(String(60), nullable=False)
     # Phone is the primary identity here (Ghana / Mobile Money); email is optional.
     phone: Mapped[str] = mapped_column(String(20), unique=True, index=True, nullable=False)
     email: Mapped[str | None] = mapped_column(String(255), unique=True, index=True, nullable=True)
@@ -45,6 +44,10 @@ class User(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now()
     )
+
+    @property
+    def full_name(self) -> str:
+        return f"{self.first_name} {self.last_name}".strip()
 
     def __repr__(self) -> str:
         return f"<User {self.id} {self.role.value} {self.phone}>"

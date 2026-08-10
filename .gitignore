@@ -10,6 +10,25 @@ venv/
 # Env / secrets
 .env
 .env.local
+.env.prod
+# ...but keep the committed templates
+!.env.example
+!.env.prod.example
+
+# Terraform
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+
+# Uploaded files (dev local storage)
+backend/uploads/
+uploads/
 
 # Node / frontend
 node_modules/

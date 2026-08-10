@@ -1,0 +1,61 @@
+# Production stack for a single host (e.g. an AWS EC2 spot instance).
+#   docker compose -f docker-compose.prod.yml up -d --build
+#
+# Only `web` is published (ports 80/443). `api` and `db` stay on the internal
+# network and are reached through nginx (same-origin: /api and /uploads).
+#
+# Config comes from two gitignored files:
+#   ./.env             — infra + build args (compose interpolates ${...} below)
+#   ./backend/.env.prod — backend runtime secrets (JWT, PIN keys, SMTP)
+# See .env.example / backend/.env.prod.example and DEPLOY.md.
+
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build: ./backend
+    restart: unless-stopped
+    # Apply DB migrations, then serve (no --reload; multiple workers).
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2"
+    env_file:
+      - ./backend/.env.prod
+    environment:
+      # Built from the same POSTGRES_* values as the db service (no duplication).
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      # Same-origin in prod, so CORS is belt-and-suspenders only.
+      CORS_ORIGINS: ${PUBLIC_ORIGIN:?set in .env}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+      args:
+        # Empty => the SPA calls the API same-origin (/api/...), proxied by nginx.
+        VITE_API_URL: ""
+        VITE_MAPBOX_TOKEN: ${VITE_MAPBOX_TOKEN:-}
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  uploads:

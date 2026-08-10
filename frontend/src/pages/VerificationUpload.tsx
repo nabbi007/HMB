@@ -1,14 +1,15 @@
-import { useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link } from "react-router-dom"
 import { AddIcon, BackIcon, CheckCircleIcon, TrashIcon, UploadIcon } from "@/lib/icons"
 import { cn } from "@/lib/utils"
+import { useRole } from "@/lib/role-context"
+import { api, ApiError, mediaUrl, uploadFile } from "@/lib/api"
 
 type DocStatus = "none" | "pending" | "verified"
 
 interface Certification {
-  id: string
   name: string
-  fileName: string
+  url: string
 }
 
 const statusMeta: Record<DocStatus, { label: string; className: string }> = {
@@ -18,46 +19,116 @@ const statusMeta: Record<DocStatus, { label: string; className: string }> = {
 }
 
 export default function VerificationUpload() {
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [photoStatus, setPhotoStatus] = useState<DocStatus>("none")
   const [idFile, setIdFile] = useState<string | null>(null)
   const [idStatus, setIdStatus] = useState<DocStatus>("none")
-  const [bgStatus, setBgStatus] = useState<DocStatus>("none")
-  const [certifications, setCertifications] = useState<Certification[]>([
-    { id: "c1", name: "RN License", fileName: "rn-license.pdf" },
-    { id: "c2", name: "Newborn CPR", fileName: "cpr-cert.pdf" },
-  ])
-  const [addingCert, setAddingCert] = useState(false)
-  const [newCertName, setNewCertName] = useState("")
+  const [certifications, setCertifications] = useState<Certification[]>([])
+  const [savingCert, setSavingCert] = useState(false)
 
+  const photoInputRef = useRef<HTMLInputElement>(null)
   const idInputRef = useRef<HTMLInputElement>(null)
   const certInputRef = useRef<HTMLInputElement>(null)
 
-  const totalSteps = 3
-  const completedSteps =
-    (idStatus === "verified" ? 1 : 0) +
-    (bgStatus === "verified" ? 1 : 0) +
-    (certifications.length > 0 ? 1 : 0)
-  const progressPct = Math.round((completedSteps / totalSteps) * 100)
+  const { token } = useRole()
+  const [uploadErr, setUploadErr] = useState<string | null>(null)
 
-  function handleIdUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  // Load any previously submitted photo / ID / certifications.
+  useEffect(() => {
+    if (!token) return
+    api<{
+      profile_photo_url: string | null
+      passport_photo_url: string | null
+      certifications: Certification[] | null
+    }>("/api/v1/nurses/me", { token })
+      .then((p) => {
+        if (p.profile_photo_url) {
+          setPhotoUrl(mediaUrl(p.profile_photo_url) ?? null)
+          setPhotoStatus("pending")
+        }
+        if (p.passport_photo_url) {
+          setIdFile("Uploaded")
+          setIdStatus("pending")
+        }
+        setCertifications(p.certifications ?? [])
+      })
+      .catch(() => {})
+  }, [token])
+
+  // Only the required documents count toward progress.
+  const requiredTotal = 2
+  const requiredDone = (photoStatus !== "none" ? 1 : 0) + (idStatus !== "none" ? 1 : 0)
+  const progressPct = Math.round((requiredDone / requiredTotal) * 100)
+
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    setIdFile(file.name)
-    setIdStatus("pending")
+    setUploadErr(null)
+    try {
+      const { url } = await uploadFile(file, token ?? undefined)
+      await api("/api/v1/nurses/me", {
+        method: "PATCH",
+        body: { profile_photo_url: url },
+        token: token ?? undefined,
+      })
+      setPhotoUrl(mediaUrl(url) ?? null)
+      setPhotoStatus("pending")
+    } catch (err) {
+      setUploadErr(err instanceof ApiError ? err.detail : "Upload failed. Try again.")
+    }
   }
 
-  function addCertification(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleIdUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
-    if (!file || !newCertName.trim()) return
-    setCertifications((prev) => [
-      ...prev,
-      { id: `c-${Date.now()}`, name: newCertName.trim(), fileName: file.name },
-    ])
-    setNewCertName("")
-    setAddingCert(false)
+    if (!file) return
+    setUploadErr(null)
+    try {
+      const { url } = await uploadFile(file, token ?? undefined)
+      await api("/api/v1/nurses/me", {
+        method: "PATCH",
+        body: { passport_photo_url: url },
+        token: token ?? undefined,
+      })
+      setIdFile(file.name)
+      setIdStatus("pending")
+    } catch (err) {
+      setUploadErr(err instanceof ApiError ? err.detail : "Upload failed. Try again.")
+    }
   }
 
-  function removeCertification(id: string) {
-    setCertifications((prev) => prev.filter((c) => c.id !== id))
+  async function persistCertifications(next: Certification[]) {
+    await api("/api/v1/nurses/me", {
+      method: "PATCH",
+      body: { certifications: next },
+      token: token ?? undefined,
+    })
+    setCertifications(next)
+  }
+
+  async function addCertification(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = "" // allow re-picking the same file later
+    if (!file) return
+    setUploadErr(null)
+    setSavingCert(true)
+    try {
+      const { url } = await uploadFile(file, token ?? undefined)
+      // The certification's name is the uploaded file's own name.
+      await persistCertifications([...certifications, { name: file.name, url }])
+    } catch (err) {
+      setUploadErr(err instanceof ApiError ? err.detail : "Upload failed. Try again.")
+    } finally {
+      setSavingCert(false)
+    }
+  }
+
+  async function removeCertification(url: string) {
+    setUploadErr(null)
+    try {
+      await persistCertifications(certifications.filter((c) => c.url !== url))
+    } catch (err) {
+      setUploadErr(err instanceof ApiError ? err.detail : "Couldn't remove. Try again.")
+    }
   }
 
   return (
@@ -71,17 +142,26 @@ export default function VerificationUpload() {
           Back to dashboard
         </Link>
 
-        <h1 className="text-xl font-bold text-text-charcoal md:text-2xl">Verification &amp; documents</h1>
+        <h1 className="text-xl font-bold text-text-charcoal md:text-2xl">
+          Verification &amp; documents
+        </h1>
         <p className="mt-1 text-sm text-text-muted">
-          Complete these steps to earn your verified badge and start receiving bookings.
+          Submit your required documents to earn your verified badge and start receiving bookings.
+          HMB runs the background check for you — no action needed on your part.
         </p>
 
-        {/* Progress */}
+        {uploadErr ? (
+          <p className="mt-4 rounded-panel bg-brand-red-tint px-3 py-2 text-sm text-brand-red">
+            {uploadErr}
+          </p>
+        ) : null}
+
+        {/* Progress (required documents only) */}
         <div className="mt-6 rounded-card bg-background-white p-6">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-text-charcoal">Verification progress</p>
+            <p className="text-sm font-medium text-text-charcoal">Required documents</p>
             <p className="text-sm text-text-muted">
-              {completedSteps} of {totalSteps} complete
+              {requiredDone} of {requiredTotal} submitted
             </p>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-neutral-surface">
@@ -92,11 +172,60 @@ export default function VerificationUpload() {
           </div>
         </div>
 
-        {/* Government ID */}
-        <section className="mt-6 rounded-card bg-background-white p-6">
+        {/* --- Required --- */}
+        <h2 className="mt-8 text-xs font-semibold tracking-wide text-text-muted uppercase">
+          Required
+        </h2>
+
+        {/* Profile photo */}
+        <section className="mt-3 rounded-card bg-background-white p-6">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold text-text-charcoal">Government ID</h2>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-text-charcoal">Profile photo</h3>
+                <ReqTag required />
+              </div>
+              <p className="mt-1 text-sm text-text-muted">
+                A clear photo of your face. Families must see who they're booking.
+              </p>
+            </div>
+            <StatusBadge status={photoStatus} />
+          </div>
+
+          <input
+            ref={photoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={handlePhotoUpload}
+          />
+          <div className="mt-4 flex items-center gap-4">
+            <span className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-neutral-surface">
+              {photoUrl ? (
+                <img src={photoUrl} alt="Profile" className="size-full object-cover" />
+              ) : (
+                <UploadIcon className="size-5 text-text-muted" />
+              )}
+            </span>
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              className="flex items-center gap-2 rounded-panel border border-dashed border-neutral-border bg-neutral-surface px-4 py-2.5 text-sm font-medium text-text-charcoal transition-colors hover:bg-neutral-border/30"
+            >
+              <UploadIcon className="size-4.5" />
+              {photoUrl ? "Change photo" : "Upload photo"}
+            </button>
+          </div>
+        </section>
+
+        {/* Government ID */}
+        <section className="mt-4 rounded-card bg-background-white p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-text-charcoal">Government ID</h3>
+                <ReqTag required />
+              </div>
               <p className="mt-1 text-sm text-text-muted">
                 A valid passport, driver's license, or national ID card.
               </p>
@@ -121,116 +250,84 @@ export default function VerificationUpload() {
           </button>
         </section>
 
-        {/* Background check */}
-        <section className="mt-6 rounded-card bg-background-white p-6">
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <h2 className="text-lg font-semibold text-text-charcoal">Background check</h2>
-              <p className="mt-1 text-sm text-text-muted">
-                We run a criminal record and identity check through our verification partner.
-              </p>
-            </div>
-            <StatusBadge status={bgStatus} />
-          </div>
+        <p className="mt-3 rounded-panel bg-neutral-surface px-4 py-3 text-xs text-text-muted">
+          Your Nursing &amp; Midwifery Council (NMC) PIN is also required — add it on your{" "}
+          <Link to="/profile" className="font-medium text-brand-red hover:underline">
+            Profile
+          </Link>
+          .
+        </p>
 
-          {bgStatus === "none" ? (
-            <button
-              type="button"
-              onClick={() => setBgStatus("pending")}
-              className="mt-4 w-full rounded-panel bg-brand-red px-4 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90"
-            >
-              Authorize background check
-            </button>
-          ) : (
-            <p className="mt-4 text-sm text-text-muted">
-              {bgStatus === "pending"
-                ? "Your background check is in progress — this usually takes 1–3 business days."
-                : "Your background check is complete."}
-            </p>
-          )}
-        </section>
+        {/* --- Optional --- */}
+        <h2 className="mt-8 text-xs font-semibold tracking-wide text-text-muted uppercase">
+          Optional
+        </h2>
 
         {/* Certifications */}
-        <section className="mt-6 rounded-card bg-background-white p-6">
-          <h2 className="text-lg font-semibold text-text-charcoal">Certifications &amp; licenses</h2>
+        <section className="mt-3 rounded-card bg-background-white p-6">
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-semibold text-text-charcoal">Certifications &amp; licenses</h3>
+            <ReqTag />
+          </div>
           <p className="mt-1 text-sm text-text-muted">
-            Nursing licenses, CPR, first aid, or any specialty certifications.
+            Nursing licenses, CPR, first aid, or any specialty certifications. These strengthen your
+            profile but aren't required to get verified.
           </p>
 
           <div className="mt-4 flex flex-col gap-2">
-            {certifications.map((cert) => (
-              <div
-                key={cert.id}
-                className="flex items-center justify-between gap-3 rounded-panel bg-neutral-surface p-3"
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <CheckCircleIcon className="size-4.5 shrink-0 text-verify-green" />
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-text-charcoal">{cert.name}</p>
-                    <p className="truncate text-xs text-text-muted">{cert.fileName}</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeCertification(cert.id)}
-                  aria-label={`Remove ${cert.name}`}
-                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-neutral-border/40 hover:text-brand-red"
+            {certifications.length === 0 ? (
+              <p className="text-sm text-text-muted">No certifications added yet.</p>
+            ) : (
+              certifications.map((cert) => (
+                <div
+                  key={cert.url}
+                  className="flex items-center justify-between gap-3 rounded-panel bg-neutral-surface p-3"
                 >
-                  <TrashIcon className="size-4" />
-                </button>
-              </div>
-            ))}
+                  <div className="flex min-w-0 items-center gap-2.5">
+                    <CheckCircleIcon className="size-4.5 shrink-0 text-verify-green" />
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-text-charcoal">{cert.name}</p>
+                      <a
+                        href={mediaUrl(cert.url) ?? cert.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-xs text-text-muted hover:text-brand-red hover:underline"
+                      >
+                        View file
+                      </a>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => removeCertification(cert.url)}
+                    aria-label={`Remove ${cert.name}`}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-neutral-border/40 hover:text-brand-red"
+                  >
+                    <TrashIcon className="size-4" />
+                  </button>
+                </div>
+              ))
+            )}
           </div>
 
-          {addingCert ? (
-            <div className="mt-3 flex flex-col gap-2 rounded-panel border border-neutral-border p-3">
-              <input
-                autoFocus
-                value={newCertName}
-                onChange={(e) => setNewCertName(e.target.value)}
-                placeholder="Certification name (e.g. First Aid)"
-                className="rounded-panel border border-neutral-border bg-neutral-surface px-3 py-2 text-sm text-text-charcoal placeholder:text-text-muted focus:border-brand-red focus:ring-brand-red focus:outline-none"
-              />
-              <input
-                ref={certInputRef}
-                type="file"
-                accept="image/*,.pdf"
-                className="hidden"
-                onChange={addCertification}
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={!newCertName.trim()}
-                  onClick={() => certInputRef.current?.click()}
-                  className="flex-1 rounded-panel bg-brand-red px-3 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                >
-                  Choose file
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAddingCert(false)
-                    setNewCertName("")
-                  }}
-                  className="rounded-panel border border-neutral-border bg-background-white px-3 py-2 text-sm font-medium text-text-charcoal transition-colors hover:bg-neutral-surface"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setAddingCert(true)}
-              className={cn(
-                "mt-3 flex w-full items-center justify-center gap-1.5 rounded-panel border border-dashed border-neutral-border p-3 text-sm font-medium text-text-muted transition-colors hover:bg-neutral-surface hover:text-text-charcoal"
-              )}
-            >
-              <AddIcon className="size-4" />
-              Add certification
-            </button>
-          )}
+          <input
+            ref={certInputRef}
+            type="file"
+            accept="image/*,.pdf"
+            className="hidden"
+            onChange={addCertification}
+          />
+          <button
+            type="button"
+            disabled={savingCert}
+            onClick={() => certInputRef.current?.click()}
+            className={cn(
+              "mt-3 flex w-full items-center justify-center gap-1.5 rounded-panel border border-dashed border-neutral-border p-3 text-sm font-medium text-text-muted transition-colors hover:bg-neutral-surface hover:text-text-charcoal disabled:opacity-50"
+            )}
+          >
+            <AddIcon className="size-4" />
+            {savingCert ? "Uploading…" : "Add certification"}
+          </button>
         </section>
       </div>
     </div>
@@ -242,6 +339,19 @@ function StatusBadge({ status }: { status: DocStatus }) {
   return (
     <span className={cn("shrink-0 rounded-[10px] px-2.5 py-1 text-xs font-medium", meta.className)}>
       {meta.label}
+    </span>
+  )
+}
+
+function ReqTag({ required }: { required?: boolean }) {
+  return (
+    <span
+      className={cn(
+        "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase",
+        required ? "bg-brand-red-tint text-brand-red" : "bg-neutral-surface text-text-muted"
+      )}
+    >
+      {required ? "Required" : "Optional"}
     </span>
   )
 }

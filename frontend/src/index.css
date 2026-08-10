@@ -114,3 +114,11 @@ body {
 #root {
   min-height: 100svh;
 }
+
+/* Faded, normal-weight placeholders across all inputs. */
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted) !important;
+  font-weight: 400 !important;
+  opacity: 0.55 !important;
+}

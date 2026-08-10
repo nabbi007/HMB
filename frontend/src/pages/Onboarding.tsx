@@ -27,9 +27,10 @@ export default function Onboarding() {
   const navigate = useNavigate()
   const { setRole } = useRole()
 
-  function chooseRole(role: Role, to: string) {
+  function chooseRole(role: Role) {
+    // Remember the chosen persona, then create the account on the signup page.
     setRole(role)
-    navigate(to)
+    navigate("/signup")
   }
 
   return (
@@ -39,7 +40,7 @@ export default function Onboarding() {
           <button
             key={option.title}
             type="button"
-            onClick={() => chooseRole(option.role, option.to)}
+            onClick={() => chooseRole(option.role)}
             className="group flex flex-col gap-3 rounded-panel border border-neutral-border p-5 text-left transition-colors hover:border-brand-red hover:bg-neutral-surface"
           >
             <span className="flex items-center gap-3">

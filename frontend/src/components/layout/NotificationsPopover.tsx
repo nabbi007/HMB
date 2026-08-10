@@ -91,6 +91,9 @@ export function NotificationsPopover({
           </div>
 
           <div className="flex max-h-[360px] flex-col gap-1 overflow-y-auto p-2">
+            {items.length === 0 ? (
+              <p className="p-4 text-center text-sm text-text-muted">You're all caught up.</p>
+            ) : null}
             {items.map((n) => {
               const Icon = typeIcon[n.type]
               return (

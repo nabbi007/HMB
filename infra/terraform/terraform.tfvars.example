@@ -1,0 +1,20 @@
+# Copy to terraform.tfvars and fill in. terraform.tfvars is gitignored.
+
+# Your repo (must contain docker-compose.prod.yml on the chosen branch).
+repo_url    = "https://github.com/YOUR_ORG/hmb.git"
+repo_branch = "main"
+# github_token = "ghp_xxx"   # only for a PRIVATE repo
+
+# SSH: paste your PUBLIC key (cat ~/.ssh/id_ed25519.pub) and lock SSH to your IP.
+ssh_public_key   = "ssh-ed25519 AAAA... you@host"
+ssh_ingress_cidr = "1.2.3.4/32"
+
+# Secrets you must provide:
+#   Fernet key:  python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+pin_encryption_key = "PASTE_FERNET_KEY"
+smtp_password      = "your-gmail-app-password"
+mapbox_token       = "pk.your_mapbox_token"
+
+# Optional overrides:
+# region        = "eu-west-1"
+# instance_type = "t3.small"
