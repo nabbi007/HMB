@@ -9,8 +9,15 @@ output "app_url" {
 }
 
 output "ssh_command" {
-  description = "SSH in (use the private key matching ssh_public_key)."
-  value       = "ssh ubuntu@${aws_instance.this.public_ip}"
+  description = "SSH in."
+  value = local.private_key_path != null ? (
+    "ssh -i ${local.private_key_path} ubuntu@${aws_instance.this.public_ip}"
+  ) : "ssh ubuntu@${aws_instance.this.public_ip}"
+}
+
+output "private_key_path" {
+  description = "Path to the generated private key (null if you supplied your own public key)."
+  value       = local.private_key_path
 }
 
 output "db_password" {

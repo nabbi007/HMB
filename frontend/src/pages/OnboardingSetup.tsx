@@ -14,7 +14,6 @@ interface LoadedProfile {
   community: string | null
   latitude: number | string | null
   longitude: number | string | null
-  care_type?: string | null
   bio?: string | null
   daily_rate?: number | string | null
   languages?: string[] | null
@@ -37,11 +36,9 @@ export default function OnboardingSetup() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const [careType, setCareType] = useState("")
   const [languages, setLanguages] = useState("")
   const [dailyRate, setDailyRate] = useState("")
   const [bio, setBio] = useState("")
-  const [nmcPin, setNmcPin] = useState("")
   const [community, setCommunity] = useState("")
   const [lat, setLat] = useState("")
   const [lng, setLng] = useState("")
@@ -57,7 +54,6 @@ export default function OnboardingSetup() {
         if (p.latitude != null) setLat(String(p.latitude))
         if (p.longitude != null) setLng(String(p.longitude))
         if (isNurse) {
-          setCareType(p.care_type ?? "")
           setBio(p.bio ?? "")
           setDailyRate(p.daily_rate != null ? String(p.daily_rate) : "")
           setLanguages(p.languages ? p.languages.join(", ") : "")
@@ -90,12 +86,10 @@ export default function OnboardingSetup() {
       .map((s) => s.trim())
       .filter(Boolean)
     const body: Record<string, unknown> = {
-      care_type: careType || null,
       bio: bio || null,
       languages: langs.length ? langs : null,
     }
     if (dailyRate.trim()) body.daily_rate = dailyRate.trim()
-    if (nmcPin.trim()) body.nmc_pin = nmcPin.trim()
     await api("/api/v1/nurses/me", { method: "PATCH", body, token: token ?? undefined })
   }
 
@@ -172,16 +166,6 @@ export default function OnboardingSetup() {
           {isNurse && step === 0 ? (
             <div className="flex flex-col gap-4">
               <div>
-                <Label htmlFor="care_type">Care type</Label>
-                <TextInput
-                  id="care_type"
-                  value={careType}
-                  onChange={(e) => setCareType(e.target.value)}
-                  placeholder="Postpartum, Night nurse, Babysitter…"
-                  className="mt-1.5"
-                />
-              </div>
-              <div>
                 <Label htmlFor="languages">Languages (comma-separated)</Label>
                 <TextInput
                   id="languages"
@@ -214,16 +198,9 @@ export default function OnboardingSetup() {
                   className="mt-1.5"
                 />
               </div>
-              <div>
-                <Label htmlFor="nmc_pin">NMC PIN</Label>
-                <TextInput
-                  id="nmc_pin"
-                  value={nmcPin}
-                  onChange={(e) => setNmcPin(e.target.value)}
-                  placeholder="Your Ghana NMC registration PIN"
-                  className="mt-1.5"
-                />
-              </div>
+              <p className="text-xs text-text-muted">
+                You'll upload your NMC PIN / license photo and ID on the verification page next.
+              </p>
             </div>
           ) : null}
 

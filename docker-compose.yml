@@ -19,8 +19,7 @@ services:
     build: ./backend
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     # SMTP (and any other secrets) come from backend/.env — gitignored.
-    # For local Mailpit instead of real email, set SMTP_HOST=mailpit / SMTP_PORT=1025
-    # / SMTP_STARTTLS=false / SMTP_SSL=false in that file.
+    # Dev sends real email via Gmail SMTP (same as prod); no Mailpit.
     env_file:
       - ./backend/.env
     environment:
@@ -35,16 +34,7 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      mailpit:
-        condition: service_started
 
-  # Mailpit: fake SMTP server that catches every outgoing email for local dev.
-  # SMTP on 1025, web inbox UI on http://localhost:8025
-  mailpit:
-    image: axllent/mailpit:latest
-    ports:
-      - "1025:1025"
-      - "8025:8025"
   frontend:
     build:
       context: ./frontend

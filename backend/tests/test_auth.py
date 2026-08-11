@@ -116,6 +116,19 @@ def test_password_reset_flow(client: TestClient, monkeypatch) -> None:
     assert forgot.status_code == 200
     code = captured["code"]
 
+    # A wrong code must NOT verify (can't reach the new-password step).
+    bad = client.post(
+        f"{V1}/auth/password/verify",
+        json={"identifier": "ama@example.com", "code": "000000"},
+    )
+    assert bad.status_code == 400
+    # The real code verifies.
+    good = client.post(
+        f"{V1}/auth/password/verify",
+        json={"identifier": "ama@example.com", "code": code},
+    )
+    assert good.status_code == 200
+
     reset = client.post(
         f"{V1}/auth/password/reset",
         json={"identifier": "ama@example.com", "code": code, "new_password": "Newpass1!"},

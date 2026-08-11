@@ -13,12 +13,10 @@ function todayIso() {
 interface NursePublic {
   id: string
   name: string
-  care_type: string | null
   bio: string | null
   daily_rate: number | string | null
   community: string | null
   languages: string[]
-  religion: string | null
   rating: number | string
   review_count: number
   profile_photo_url: string | null
@@ -164,9 +162,6 @@ export default function CaregiverProfile() {
                 Verified
               </span>
             </div>
-            {nurse.care_type ? (
-              <p className="mt-1 text-text-muted">{nurse.care_type}</p>
-            ) : null}
             <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-muted">
               <span className="inline-flex items-center gap-1">
                 <StarIcon className="size-4 text-verify-gold" />
@@ -308,9 +303,7 @@ export default function CaregiverProfile() {
         <section className="mt-6 rounded-card bg-background-white p-6 md:p-8">
           <h2 className="text-lg font-semibold text-text-charcoal">Details</h2>
           <dl className="mt-4 flex flex-col divide-y divide-neutral-border">
-            {nurse.care_type ? <Row label="Care type" value={nurse.care_type} /> : null}
             {nurse.languages.length ? <Row label="Languages" value={nurse.languages.join(", ")} /> : null}
-            {nurse.religion ? <Row label="Faith / tradition" value={nurse.religion} /> : null}
             {nurse.community ? <Row label="Community" value={nurse.community} /> : null}
             {rate != null ? <Row label="Rate" value={`GHS ${rate}/day`} /> : null}
           </dl>

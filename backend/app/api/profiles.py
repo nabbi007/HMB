@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_role
-from app.core.crypto import encrypt_pin, pin_blind_index
 from app.db.session import get_db
 from app.models.child import Child
 from app.models.mother_profile import MotherProfile
@@ -139,26 +138,8 @@ def update_my_nurse_profile(
     db: Session = Depends(get_db),
 ) -> NurseProfile:
     profile = _nurse_profile(db, user)
-    fields = data.model_dump(exclude_unset=True)
-    pin = fields.pop("nmc_pin", None)
-
-    for key, value in fields.items():
+    for key, value in data.model_dump(exclude_unset=True).items():
         setattr(profile, key, value)
-
-    if pin is not None:
-        index = pin_blind_index(pin)
-        clash = (
-            db.query(NurseProfile)
-            .filter(NurseProfile.pin_index == index, NurseProfile.id != profile.id)
-            .first()
-        )
-        if clash is not None:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="That nursing PIN is already registered to another account",
-            )
-        profile.pin_encrypted = encrypt_pin(pin)
-        profile.pin_index = index
 
     db.commit()
     db.refresh(profile)

@@ -31,6 +31,7 @@ from app.schemas.auth import (
     TokenResponse,
     UserOut,
     UserUpdate,
+    VerifyResetCodeRequest,
 )
 from app.services import email as email_service
 
@@ -296,6 +297,43 @@ def forgot_password(data: ForgotPasswordRequest, db: Session = Depends(get_db)) 
         except Exception:  # noqa: BLE001 - don't reveal send failures to the caller
             pass
     return {"detail": "If an account exists, a reset code has been sent"}
+
+
+@router.post("/password/verify", status_code=status.HTTP_200_OK)
+def verify_reset_code(
+    data: VerifyResetCodeRequest, db: Session = Depends(get_db)
+) -> dict[str, str]:
+    """Check a reset code before showing the new-password step. Does NOT consume it —
+    the /password/reset call consumes it together with setting the new password."""
+    invalid = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired reset code"
+    )
+    user = _find_by_identifier(db, data.identifier)
+    if user is None:
+        raise invalid
+
+    otp = (
+        db.query(OtpCode)
+        .filter(
+            OtpCode.user_id == user.id,
+            OtpCode.purpose == "reset",
+            OtpCode.consumed_at.is_(None),
+        )
+        .order_by(OtpCode.created_at.desc())
+        .first()
+    )
+    if otp is None or otp.expires_at < datetime.now(UTC):
+        raise invalid
+    if otp.attempts >= settings.otp_max_attempts:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Too many attempts — request a new reset code",
+        )
+    if not verify_password(data.code, otp.code_hash):
+        otp.attempts += 1
+        db.commit()
+        raise invalid
+    return {"detail": "Code verified"}
 
 
 @router.post("/password/reset", status_code=status.HTTP_200_OK)

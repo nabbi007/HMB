@@ -44,12 +44,16 @@ def _pending_nurse(client: TestClient, phone: str, email: str) -> str:
             "role": "nurse",
         },
     ).json()["access_token"]
-    # give the reviewer a PIN to check
-    client.patch(f"{V1}/nurses/me", headers=_auth(token), json={"nmc_pin": "AP-77001"})
+    # give the reviewer an NMC PIN photo to check
+    client.patch(
+        f"{V1}/nurses/me",
+        headers=_auth(token),
+        json={"nmc_pin_photo_url": "/uploads/nmc-77001.jpg"},
+    )
     return client.get(f"{V1}/auth/me", headers=_auth(token)).json()["id"]
 
 
-def test_admin_lists_pending_with_decrypted_pin(client: TestClient) -> None:
+def test_admin_lists_pending_with_pin_photo(client: TestClient) -> None:
     _pending_nurse(client, "+233555000201", "p1@example.com")
     admin = _admin_token()
     resp = client.get(f"{V1}/admin/nurses", headers=_auth(admin), params={"status": "pending"})
@@ -57,7 +61,7 @@ def test_admin_lists_pending_with_decrypted_pin(client: TestClient) -> None:
     body = resp.json()
     assert len(body) == 1
     assert body[0]["verification_status"] == "pending"
-    assert body[0]["nmc_pin"] == "AP-77001"  # decrypted for the admin
+    assert body[0]["nmc_pin_photo_url"] == "/uploads/nmc-77001.jpg"  # for the admin to review
 
 
 def test_admin_verify(client: TestClient) -> None:

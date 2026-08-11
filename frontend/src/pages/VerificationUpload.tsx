@@ -23,11 +23,14 @@ export default function VerificationUpload() {
   const [photoStatus, setPhotoStatus] = useState<DocStatus>("none")
   const [idFile, setIdFile] = useState<string | null>(null)
   const [idStatus, setIdStatus] = useState<DocStatus>("none")
+  const [nmcFile, setNmcFile] = useState<string | null>(null)
+  const [nmcStatus, setNmcStatus] = useState<DocStatus>("none")
   const [certifications, setCertifications] = useState<Certification[]>([])
   const [savingCert, setSavingCert] = useState(false)
 
   const photoInputRef = useRef<HTMLInputElement>(null)
   const idInputRef = useRef<HTMLInputElement>(null)
+  const nmcInputRef = useRef<HTMLInputElement>(null)
   const certInputRef = useRef<HTMLInputElement>(null)
 
   const { token } = useRole()
@@ -39,6 +42,7 @@ export default function VerificationUpload() {
     api<{
       profile_photo_url: string | null
       passport_photo_url: string | null
+      nmc_pin_photo_url: string | null
       certifications: Certification[] | null
     }>("/api/v1/nurses/me", { token })
       .then((p) => {
@@ -50,14 +54,21 @@ export default function VerificationUpload() {
           setIdFile("Uploaded")
           setIdStatus("pending")
         }
+        if (p.nmc_pin_photo_url) {
+          setNmcFile("Uploaded")
+          setNmcStatus("pending")
+        }
         setCertifications(p.certifications ?? [])
       })
       .catch(() => {})
   }, [token])
 
   // Only the required documents count toward progress.
-  const requiredTotal = 2
-  const requiredDone = (photoStatus !== "none" ? 1 : 0) + (idStatus !== "none" ? 1 : 0)
+  const requiredTotal = 3
+  const requiredDone =
+    (photoStatus !== "none" ? 1 : 0) +
+    (idStatus !== "none" ? 1 : 0) +
+    (nmcStatus !== "none" ? 1 : 0)
   const progressPct = Math.round((requiredDone / requiredTotal) * 100)
 
   async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -91,6 +102,24 @@ export default function VerificationUpload() {
       })
       setIdFile(file.name)
       setIdStatus("pending")
+    } catch (err) {
+      setUploadErr(err instanceof ApiError ? err.detail : "Upload failed. Try again.")
+    }
+  }
+
+  async function handleNmcUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setUploadErr(null)
+    try {
+      const { url } = await uploadFile(file, token ?? undefined)
+      await api("/api/v1/nurses/me", {
+        method: "PATCH",
+        body: { nmc_pin_photo_url: url },
+        token: token ?? undefined,
+      })
+      setNmcFile(file.name)
+      setNmcStatus("pending")
     } catch (err) {
       setUploadErr(err instanceof ApiError ? err.detail : "Upload failed. Try again.")
     }
@@ -250,13 +279,38 @@ export default function VerificationUpload() {
           </button>
         </section>
 
-        <p className="mt-3 rounded-panel bg-neutral-surface px-4 py-3 text-xs text-text-muted">
-          Your Nursing &amp; Midwifery Council (NMC) PIN is also required — add it on your{" "}
-          <Link to="/profile" className="font-medium text-brand-red hover:underline">
-            Profile
-          </Link>
-          .
-        </p>
+        {/* NMC PIN / license photo */}
+        <section className="mt-4 rounded-card bg-background-white p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-semibold text-text-charcoal">NMC PIN / license</h3>
+                <ReqTag required />
+              </div>
+              <p className="mt-1 text-sm text-text-muted">
+                A clear photo of your Nursing &amp; Midwifery Council PIN or license card. HMB checks
+                it against the official register.
+              </p>
+            </div>
+            <StatusBadge status={nmcStatus} />
+          </div>
+
+          <input
+            ref={nmcInputRef}
+            type="file"
+            accept="image/*,.pdf"
+            className="hidden"
+            onChange={handleNmcUpload}
+          />
+          <button
+            type="button"
+            onClick={() => nmcInputRef.current?.click()}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-panel border border-dashed border-neutral-border bg-neutral-surface px-4 py-3 text-sm font-medium text-text-charcoal transition-colors hover:bg-neutral-border/30"
+          >
+            <UploadIcon className="size-4.5" />
+            {nmcFile ?? "Upload NMC PIN photo"}
+          </button>
+        </section>
 
         {/* --- Optional --- */}
         <h2 className="mt-8 text-xs font-semibold tracking-wide text-text-muted uppercase">

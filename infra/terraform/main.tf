@@ -23,9 +23,28 @@ resource "random_password" "pin_index" {
   special = false
 }
 
+# If no public key is supplied, generate a keypair and save the private key locally.
+resource "tls_private_key" "this" {
+  count     = var.ssh_public_key == "" ? 1 : 0
+  algorithm = "ED25519"
+}
+
+resource "local_sensitive_file" "private_key" {
+  count           = var.ssh_public_key == "" ? 1 : 0
+  content         = tls_private_key.this[0].private_key_openssh
+  filename        = "${path.module}/${local.name}-key.pem"
+  file_permission = "0600"
+}
+
+locals {
+  # Use the supplied key, or the generated one. trimspace guards against stray newlines.
+  public_key       = var.ssh_public_key != "" ? trimspace(var.ssh_public_key) : tls_private_key.this[0].public_key_openssh
+  private_key_path = var.ssh_public_key == "" ? "${path.module}/${local.name}-key.pem" : null
+}
+
 resource "aws_key_pair" "this" {
   key_name   = "${local.name}-key"
-  public_key = var.ssh_public_key
+  public_key = local.public_key
 }
 
 resource "aws_security_group" "this" {

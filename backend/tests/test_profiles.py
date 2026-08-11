@@ -26,10 +26,10 @@ def test_nurse_gets_own_profile(client: TestClient) -> None:
     assert resp.status_code == 200
     body = resp.json()
     assert body["verification_status"] == "pending"
-    assert body["has_pin"] is False
+    assert body["nmc_pin_photo_url"] is None
 
 
-def test_nurse_updates_profile_and_pin(client: TestClient) -> None:
+def test_nurse_updates_profile_and_pin_photo(client: TestClient) -> None:
     token = _signup(client)
     resp = client.patch(
         f"{V1}/nurses/me",
@@ -38,28 +38,16 @@ def test_nurse_updates_profile_and_pin(client: TestClient) -> None:
             "bio": "10 years neonatal care",
             "daily_rate": "150.00",
             "community": "East Legon",
-            "nmc_pin": "AP-12345",
+            "nmc_pin_photo_url": "/uploads/nmc-abc.jpg",
         },
     )
     assert resp.status_code == 200
     body = resp.json()
     assert body["bio"] == "10 years neonatal care"
     assert body["community"] == "East Legon"
-    assert body["has_pin"] is True
-    # The PIN itself is never returned.
-    assert "nmc_pin" not in body and "pin_encrypted" not in body
-
-
-def test_duplicate_pin_rejected(client: TestClient) -> None:
-    t1 = _signup(client)
-    assert (
-        client.patch(f"{V1}/nurses/me", headers=_auth(t1), json={"nmc_pin": "AP-999"}).status_code
-        == 200
-    )
-
-    t2 = _signup(client, phone="+233200000002", email="two@example.com")
-    dup = client.patch(f"{V1}/nurses/me", headers=_auth(t2), json={"nmc_pin": "AP-999"})
-    assert dup.status_code == 409
+    # The NMC PIN is now a photo, not a number.
+    assert body["nmc_pin_photo_url"] == "/uploads/nmc-abc.jpg"
+    assert "nmc_pin" not in body
 
 
 def test_mother_profile_crud(client: TestClient) -> None:

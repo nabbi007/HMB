@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react"
 import { Button, Label, TextInput, Textarea, ToggleSwitch, useThemeMode } from "flowbite-react"
-import { useNavigate } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import { AddIcon, LogoutIcon, TrashIcon, UploadIcon, VerifiedIcon } from "@/lib/icons"
 import { api, ApiError, mediaUrl, uploadFile } from "@/lib/api"
 import { useRole } from "@/lib/role-context"
@@ -14,11 +14,8 @@ interface NurseProfile {
   latitude: number | string | null
   longitude: number | string | null
   languages: string[] | null
-  religion: string | null
-  care_type: string | null
   profile_photo_url: string | null
   verification_status: string
-  has_pin: boolean
 }
 
 interface MotherProfile {
@@ -63,7 +60,6 @@ export default function Profile() {
   const roleLabel = isNurse ? "Caregiver" : "Parent"
 
   // Real profile data from the backend.
-  const [hasPin, setHasPin] = useState(false)
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const photoInputRef = useRef<HTMLInputElement>(null)
 
@@ -91,10 +87,7 @@ export default function Profile() {
     community: "",
     latitude: "",
     longitude: "",
-    care_type: "",
     languages: "",
-    religion: "",
-    nmc_pin: "",
     number_of_children: "",
     children_notes: "",
   })
@@ -129,13 +122,10 @@ export default function Profile() {
           community: p.community ?? "",
           latitude: p.latitude != null ? String(p.latitude) : "",
           longitude: p.longitude != null ? String(p.longitude) : "",
-          care_type: p.care_type ?? "",
-          religion: p.religion ?? "",
           languages: p.languages ? p.languages.join(", ") : "",
           number_of_children: p.number_of_children != null ? String(p.number_of_children) : "",
           children_notes: p.children_notes ?? "",
         }))
-        setHasPin(Boolean(p.has_pin))
         if (p.profile_photo_url) setPhotoUrl(mediaUrl(p.profile_photo_url) ?? null)
       })
       .catch(() => setError("Could not load your profile."))
@@ -209,9 +199,6 @@ export default function Profile() {
           community: form.community || null,
         }
         if (form.daily_rate.trim()) payload.daily_rate = form.daily_rate.trim()
-        if (form.nmc_pin.trim()) payload.nmc_pin = form.nmc_pin.trim()
-        payload.care_type = form.care_type || null
-        payload.religion = form.religion || null
         const langs = form.languages
           .split(",")
           .map((s) => s.trim())
@@ -221,13 +208,11 @@ export default function Profile() {
           payload.latitude = Number(form.latitude)
           payload.longitude = Number(form.longitude)
         }
-        const updated = await api<NurseProfile>("/api/v1/nurses/me", {
+        await api<NurseProfile>("/api/v1/nurses/me", {
           method: "PATCH",
           body: payload,
           token: token ?? undefined,
         })
-        setHasPin(updated.has_pin)
-        set("nmc_pin", "")
       } else {
         const payload: Record<string, unknown> = {
           community: form.community || null,
@@ -401,7 +386,7 @@ export default function Profile() {
                       rows={2}
                       value={form.job_description}
                       onChange={(e) => set("job_description", e.target.value)}
-                      placeholder="e.g. Newborn care, night nursing"
+                      placeholder="e.g. Newborn care, feeding support"
                       className="mt-1.5"
                     />
                   </div>
@@ -418,16 +403,6 @@ export default function Profile() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="care_type">Care type</Label>
-                    <TextInput
-                      id="care_type"
-                      value={form.care_type}
-                      onChange={(e) => set("care_type", e.target.value)}
-                      placeholder="e.g. Postpartum, Night nurse, Babysitter"
-                      className="mt-1.5"
-                    />
-                  </div>
-                  <div>
                     <Label htmlFor="languages">Languages (comma-separated)</Label>
                     <TextInput
                       id="languages"
@@ -437,28 +412,13 @@ export default function Profile() {
                       className="mt-1.5"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="religion">Religion (optional)</Label>
-                    <TextInput
-                      id="religion"
-                      value={form.religion}
-                      onChange={(e) => set("religion", e.target.value)}
-                      placeholder="Helps families find a shared-values match"
-                      className="mt-1.5"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="nmc_pin">
-                      NMC PIN {hasPin ? "(on file — enter to replace)" : "(required for verification)"}
-                    </Label>
-                    <TextInput
-                      id="nmc_pin"
-                      value={form.nmc_pin}
-                      onChange={(e) => set("nmc_pin", e.target.value)}
-                      placeholder={hasPin ? "•••••• stored securely" : "Your Ghana NMC registration PIN"}
-                      className="mt-1.5"
-                    />
-                  </div>
+                  <p className="text-xs text-text-muted">
+                    Upload your NMC PIN / license photo and ID on the{" "}
+                    <Link to="/verification" className="font-medium text-brand-red hover:underline">
+                      verification page
+                    </Link>
+                    .
+                  </p>
                 </>
               ) : null}
 

@@ -14,16 +14,14 @@ interface AdminNurse {
   email: string | null
   phone: string
   community: string | null
-  care_type: string | null
   languages: string[]
   bio: string | null
   daily_rate: number | string | null
   verification_status: string
   verification_reason: string | null
-  has_pin: boolean
-  nmc_pin: string | null
   profile_photo_url: string | null
   passport_photo_url: string | null
+  nmc_pin_photo_url: string | null
 }
 
 function initials(name: string): string {
@@ -148,6 +146,7 @@ export default function AdminDashboard() {
             nurses.map((n) => {
               const photo = mediaUrl(n.profile_photo_url)
               const idDoc = mediaUrl(n.passport_photo_url)
+              const nmcDoc = mediaUrl(n.nmc_pin_photo_url)
               return (
                 <div key={n.user_id} className="rounded-card bg-background-white p-6">
                   <div className="flex items-start gap-4">
@@ -165,8 +164,7 @@ export default function AdminDashboard() {
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-text-charcoal">{n.full_name}</p>
                       <p className="text-sm text-text-muted">
-                        {n.care_type ?? "—"}
-                        {n.community ? ` · ${n.community}` : ""}
+                        Caregiver{n.community ? ` · ${n.community}` : ""}
                       </p>
                       <p className="text-xs text-text-muted">
                         {n.email ?? "no email"} · {n.phone}
@@ -175,7 +173,11 @@ export default function AdminDashboard() {
                   </div>
 
                   <dl className="mt-4 grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2">
-                    <Field label="NMC PIN" value={n.nmc_pin ?? "— not submitted —"} mono />
+                    <Field
+                      label="NMC PIN photo"
+                      value={nmcDoc ? "View" : "— not submitted —"}
+                      href={nmcDoc}
+                    />
                     <Field label="Languages" value={n.languages.join(", ") || "—"} />
                     <Field
                       label="Rate"

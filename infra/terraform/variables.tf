@@ -24,8 +24,9 @@ variable "root_volume_gb" {
 
 # --- Access ---
 variable "ssh_public_key" {
-  description = "SSH public key material to install on the instance (e.g. contents of ~/.ssh/id_ed25519.pub)."
+  description = "Optional OpenSSH PUBLIC key to install (contents of ~/.ssh/id_ed25519.pub). Leave empty and Terraform generates a keypair, writing the private key to <project_name>-key.pem."
   type        = string
+  default     = ""
 }
 
 variable "ssh_ingress_cidr" {

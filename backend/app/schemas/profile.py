@@ -24,11 +24,11 @@ class NurseProfileOut(BaseModel):
     care_type: str | None
     profile_photo_url: str | None
     passport_photo_url: str | None
+    nmc_pin_photo_url: str | None
     certifications: list[CertificationItem] | None
     verification_status: str
     avg_rating: Decimal
     review_count: int
-    has_pin: bool  # whether an NMC PIN has been submitted (the PIN itself is never returned)
 
 
 class NurseProfileUpdate(BaseModel):
@@ -43,9 +43,8 @@ class NurseProfileUpdate(BaseModel):
     care_type: str | None = Field(default=None, max_length=60)
     profile_photo_url: str | None = Field(default=None, max_length=500)
     passport_photo_url: str | None = Field(default=None, max_length=500)
+    nmc_pin_photo_url: str | None = Field(default=None, max_length=500)
     certifications: list[CertificationItem] | None = Field(default=None, max_length=20)
-    # The Ghana NMC registration PIN. Write-only; stored encrypted, never returned.
-    nmc_pin: str | None = Field(default=None, min_length=3, max_length=40)
 
 
 class NurseSearchResult(BaseModel):

@@ -59,6 +59,11 @@ class ForgotPasswordRequest(BaseModel):
     identifier: str = Field(description="phone or email")
 
 
+class VerifyResetCodeRequest(BaseModel):
+    identifier: str = Field(description="phone or email")
+    code: str = Field(min_length=4, max_length=10)
+
+
 class ResetPasswordRequest(BaseModel):
     identifier: str = Field(description="phone or email")
     code: str = Field(min_length=4, max_length=10)

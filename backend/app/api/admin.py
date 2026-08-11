@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_role
-from app.core.crypto import decrypt_pin
 from app.db.session import get_db
 from app.models.nurse_profile import NurseProfile, VerificationStatus
 from app.models.user import User, UserRole
@@ -24,16 +23,14 @@ def _admin_out(profile: NurseProfile, user: User) -> AdminNurseOut:
         email=user.email,
         phone=user.phone,
         community=profile.community,
-        care_type=profile.care_type,
         languages=profile.languages or [],
         bio=profile.bio,
         daily_rate=profile.daily_rate,
         verification_status=profile.verification_status.value,
         verification_reason=profile.verification_reason,
-        has_pin=profile.has_pin,
-        nmc_pin=decrypt_pin(profile.pin_encrypted) if profile.pin_encrypted else None,
         profile_photo_url=profile.profile_photo_url,
         passport_photo_url=profile.passport_photo_url,
+        nmc_pin_photo_url=profile.nmc_pin_photo_url,
         created_at=profile.created_at,
     )
 

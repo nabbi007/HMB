@@ -69,6 +69,9 @@ class NurseProfile(Base):
     passport_photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     # Optional uploaded certifications/licenses: list of {"name": str, "url": str}.
     certifications: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    # Photo of the NMC PIN / license card, uploaded for admin verification
+    # (replaces collecting the PIN number itself).
+    nmc_pin_photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     community: Mapped[str | None] = mapped_column(String(120), nullable=True)
     # Approximate location (from place autocomplete). Public-facing area, not exact home.
     latitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)

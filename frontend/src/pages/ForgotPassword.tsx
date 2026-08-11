@@ -33,7 +33,7 @@ export default function ForgotPassword() {
     setSubmitting(true)
     try {
       await api("/api/v1/auth/password/forgot", { method: "POST", body: { identifier } })
-      setInfo("If an account exists, a reset code was emailed. (Dev: read it in Mailpit.)")
+      setInfo("If an account exists, a reset code has been emailed. Check your inbox (and spam).")
       setStep("code")
     } catch (err) {
       setError(err instanceof ApiError ? err.detail : "Something went wrong. Please try again.")
@@ -42,12 +42,24 @@ export default function ForgotPassword() {
     }
   }
 
-  function continueToPassword(e: React.FormEvent) {
+  async function continueToPassword(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
     if (!code.trim()) return
-    setInfo(null)
-    setStep("password")
+    setSubmitting(true)
+    try {
+      // Verify the code up front so a wrong code can't reach the new-password step.
+      await api("/api/v1/auth/password/verify", {
+        method: "POST",
+        body: { identifier, code: code.trim() },
+      })
+      setInfo(null)
+      setStep("password")
+    } catch (err) {
+      setError(err instanceof ApiError ? err.detail : "Invalid or expired code.")
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   async function resetPassword(e: React.FormEvent) {

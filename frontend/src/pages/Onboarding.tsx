@@ -8,7 +8,7 @@ const roles = [
   {
     role: "parent" as Role,
     title: "I need care",
-    description: "Find verified nurses, night nurses, babysitters, and caregivers near you.",
+    description: "Find verified caregivers near you.",
     to: "/",
     icon: HeartIcon,
     iconClassName: "bg-brand-red-tint text-brand-red",

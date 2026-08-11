@@ -2,13 +2,12 @@ import { useMemo, useState } from "react"
 import { ArrowRightIcon, BackIcon } from "@/lib/icons"
 import { cn } from "@/lib/utils"
 
-type SlotKey = "morning" | "afternoon" | "evening" | "overnight"
+type SlotKey = "morning" | "afternoon" | "evening"
 
 const SLOTS: { key: SlotKey; label: string; hint: string }[] = [
   { key: "morning", label: "Morning", hint: "6am–12pm" },
   { key: "afternoon", label: "Afternoon", hint: "12–5pm" },
   { key: "evening", label: "Evening", hint: "5–9pm" },
-  { key: "overnight", label: "Overnight", hint: "9pm–6am" },
 ]
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"]
@@ -131,7 +130,7 @@ export function AvailabilityCalendar() {
       <div className="mt-5 rounded-panel bg-neutral-surface p-4">
         <p className="text-sm font-semibold text-text-charcoal">{selectedDateLabel}</p>
         <p className="mt-0.5 text-xs text-text-muted">Choose which parts of the day you're open for bookings.</p>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div className="mt-3 grid grid-cols-3 gap-2">
           {SLOTS.map((slot) => {
             const active = selectedSlots.includes(slot.key)
             return (

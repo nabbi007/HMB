@@ -15,7 +15,6 @@ const ACCRA = { lng: -0.1869, lat: 5.6037 }
 interface NurseResult {
   id: string
   name: string
-  care_type: string | null
   daily_rate: number | string | null
   community: string | null
   languages: string[]
@@ -66,7 +65,6 @@ export default function Home() {
   const [nurses, setNurses] = useState<NurseResult[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
-  const [careFilter, setCareFilter] = useState<string | null>(null)
   const [hoveredId, setHoveredId] = useState<string | null>(null)
   const [sheetExpanded, setSheetExpanded] = useState(false)
 
@@ -102,48 +100,27 @@ export default function Home() {
       .finally(() => setLoading(false))
   }, [located, token, center.lat, center.lng])
 
-  const careTypes = useMemo(
-    () => Array.from(new Set(nurses.map((n) => n.care_type).filter(Boolean))) as string[],
-    [nurses]
-  )
-
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase()
     return nurses.filter((n) => {
-      if (careFilter && n.care_type !== careFilter) return false
       if (q) {
-        const hay =
-          `${n.name} ${n.care_type ?? ""} ${n.community ?? ""} ${n.languages.join(" ")}`.toLowerCase()
+        const hay = `${n.name} ${n.community ?? ""} ${n.languages.join(" ")}`.toLowerCase()
         if (!hay.includes(q)) return false
       }
       return true
     })
-  }, [nurses, search, careFilter])
+  }, [nurses, search])
 
   const searchAndFilters = (
-    <>
-      <div className="flex items-center gap-2 rounded-panel border border-neutral-border bg-neutral-surface px-3 py-2.5">
-        <SearchIcon className="size-4 shrink-0 text-text-muted" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search name, care type, area…"
-          className="w-full bg-transparent text-sm text-text-charcoal placeholder:text-text-muted focus:outline-none"
-        />
-      </div>
-      {careTypes.length > 0 ? (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          <Chip active={careFilter === null} onClick={() => setCareFilter(null)}>
-            All
-          </Chip>
-          {careTypes.map((c) => (
-            <Chip key={c} active={careFilter === c} onClick={() => setCareFilter(c)}>
-              {c}
-            </Chip>
-          ))}
-        </div>
-      ) : null}
-    </>
+    <div className="flex items-center gap-2 rounded-panel border border-neutral-border bg-neutral-surface px-3 py-2.5">
+      <SearchIcon className="size-4 shrink-0 text-text-muted" />
+      <input
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search name or area…"
+        className="w-full bg-transparent text-sm text-text-charcoal placeholder:text-text-muted focus:outline-none"
+      />
+    </div>
   )
 
   const resultsList = (
@@ -168,8 +145,7 @@ export default function Home() {
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <p className="truncate text-lg font-semibold text-text-charcoal">{n.name}</p>
               <p className="truncate text-sm text-text-muted">
-                {n.care_type ?? "Caregiver"}
-                {n.community ? ` · ${n.community}` : ""}
+                Caregiver{n.community ? ` · ${n.community}` : ""}
               </p>
               <p className="flex items-center gap-1 text-xs text-text-muted">
                 <StarIcon className="size-3.5 text-verify-gold" />
@@ -266,27 +242,3 @@ export default function Home() {
   )
 }
 
-function Chip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean
-  onClick: () => void
-  children: React.ReactNode
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "shrink-0 rounded-pill border px-3 py-1.5 text-xs font-medium transition-colors",
-        active
-          ? "border-brand-red bg-brand-red text-white"
-          : "border-neutral-border bg-background-white text-text-charcoal hover:bg-neutral-surface"
-      )}
-    >
-      {children}
-    </button>
-  )
-}

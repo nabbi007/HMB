@@ -108,7 +108,7 @@ export default function VerifyOtp() {
       </div>
 
       <p className="mt-4 text-center text-xs text-text-muted">
-        Dev tip: open Mailpit at http://localhost:8025 to read the code.
+        The code was emailed to you — check your inbox (and spam).
       </p>
     </AuthLayout>
   )
