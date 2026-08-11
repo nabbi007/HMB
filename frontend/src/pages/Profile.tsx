@@ -217,6 +217,11 @@ export default function Profile() {
         const payload: Record<string, unknown> = {
           community: form.community || null,
         }
+        const langs = form.languages
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+        payload.languages = langs.length ? langs : null
         if (form.latitude && form.longitude) {
           payload.latitude = Number(form.latitude)
           payload.longitude = Number(form.longitude)
@@ -365,6 +370,19 @@ export default function Profile() {
                   <p className="mt-1 text-xs text-text-muted">Pick a place from the list to set your map location</p>
                 )}
               </div>
+
+              {!isNurse ? (
+                <div>
+                  <Label htmlFor="languages">Languages you speak (comma-separated)</Label>
+                  <TextInput
+                    id="languages"
+                    value={form.languages}
+                    onChange={(e) => set("languages", e.target.value)}
+                    placeholder="English, Twi, Ga"
+                    className="mt-1.5"
+                  />
+                </div>
+              ) : null}
 
               {isNurse ? (
                 <>

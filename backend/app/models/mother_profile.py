@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, ForeignKey, Integer, Numeric, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import ARRAY, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
@@ -26,6 +26,8 @@ class MotherProfile(Base):
     # Location (from place autocomplete) — centres her map / used to find nearby nurses.
     latitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
     longitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
+    # Languages she speaks (for matching with caregivers who share a language).
+    languages: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
 
     # --- Sensitive: information about minors. API-gated (mother / matched nurse / admin). ---
     number_of_children: Mapped[int | None] = mapped_column(Integer, nullable=True)

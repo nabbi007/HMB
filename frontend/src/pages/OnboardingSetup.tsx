@@ -53,10 +53,11 @@ export default function OnboardingSetup() {
         setCommunity(p.community ?? "")
         if (p.latitude != null) setLat(String(p.latitude))
         if (p.longitude != null) setLng(String(p.longitude))
+        // Both roles capture languages spoken.
+        setLanguages(p.languages ? p.languages.join(", ") : "")
         if (isNurse) {
           setBio(p.bio ?? "")
           setDailyRate(p.daily_rate != null ? String(p.daily_rate) : "")
-          setLanguages(p.languages ? p.languages.join(", ") : "")
           if (p.profile_photo_url) setPhotoUrl(mediaUrl(p.profile_photo_url) ?? null)
         }
       })
@@ -99,6 +100,14 @@ export default function OnboardingSetup() {
       body.latitude = Number(lat)
       body.longitude = Number(lng)
     }
+    // The mother's languages are captured on this (her only) step.
+    if (!isNurse) {
+      const langs = languages
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean)
+      body.languages = langs.length ? langs : null
+    }
     const path = isNurse ? "/api/v1/nurses/me" : "/api/v1/mothers/me"
     await api(path, { method: "PATCH", body, token: token ?? undefined })
   }
@@ -129,7 +138,7 @@ export default function OnboardingSetup() {
   }
 
   const title = !isNurse
-    ? "Where do you need care?"
+    ? "A few details about you"
     : step === 0
       ? "About your care"
       : step === 1
@@ -237,24 +246,38 @@ export default function OnboardingSetup() {
 
           {/* Location step (nurse step 2, or the mother's only step) */}
           {(isNurse && step === 2) || !isNurse ? (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="community">Community / area</Label>
-              <PlaceAutocomplete
-                id="community"
-                value={community}
-                onChange={setCommunity}
-                onSelect={(place) => {
-                  setCommunity(place.name)
-                  setLat(String(place.lat))
-                  setLng(String(place.lng))
-                }}
-                placeholder="Start typing — e.g. Dzorwulu, Achimota, Tema…"
-              />
-              {lat && lng ? (
-                <p className="text-xs text-verify-green">📍 Location set</p>
-              ) : (
-                <p className="text-xs text-text-muted">Pick a place from the list</p>
-              )}
+            <div className="flex flex-col gap-4">
+              {!isNurse ? (
+                <div>
+                  <Label htmlFor="languages">Languages you speak (comma-separated)</Label>
+                  <TextInput
+                    id="languages"
+                    value={languages}
+                    onChange={(e) => setLanguages(e.target.value)}
+                    placeholder="English, Twi, Ga"
+                    className="mt-1.5"
+                  />
+                </div>
+              ) : null}
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="community">Community / area</Label>
+                <PlaceAutocomplete
+                  id="community"
+                  value={community}
+                  onChange={setCommunity}
+                  onSelect={(place) => {
+                    setCommunity(place.name)
+                    setLat(String(place.lat))
+                    setLng(String(place.lng))
+                  }}
+                  placeholder="Start typing — e.g. Dzorwulu, Achimota, Tema…"
+                />
+                {lat && lng ? (
+                  <p className="text-xs text-verify-green">📍 Location set</p>
+                ) : (
+                  <p className="text-xs text-text-muted">Pick a place from the list</p>
+                )}
+              </div>
             </div>
           ) : null}
 
