@@ -115,6 +115,23 @@ export default function Chat() {
     conversations.find((c) => c.other_user_id === id)?.other_name ??
     "Conversation"
 
+  // Show the person you just opened a chat with in the left list right away,
+  // even before any message is exchanged (so it doesn't read "No conversations yet").
+  const shownConversations =
+    id && !conversations.some((c) => c.other_user_id === id)
+      ? [
+          {
+            other_user_id: id,
+            other_name: headerName,
+            other_photo_url: null,
+            last_message: "",
+            last_at: "",
+            unread_count: 0,
+          },
+          ...conversations,
+        ]
+      : conversations
+
   return (
     <div className="flex h-full">
       {/* Conversation list */}
@@ -126,10 +143,10 @@ export default function Chat() {
       >
         <h1 className="p-5 pb-3 text-xl font-bold text-text-charcoal">Messages</h1>
         <div className="flex flex-col gap-1 px-3 pb-3">
-          {conversations.length === 0 ? (
+          {shownConversations.length === 0 ? (
             <p className="px-2 py-6 text-center text-sm text-text-muted">No conversations yet.</p>
           ) : (
-            conversations.map((c) => (
+            shownConversations.map((c) => (
               <button
                 key={c.other_user_id}
                 type="button"
@@ -142,7 +159,9 @@ export default function Chat() {
                 <Avatar name={c.other_name} photo={c.other_photo_url} size="size-11 shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold text-text-charcoal">{c.other_name}</p>
-                  <p className="truncate text-sm text-text-muted">{c.last_message}</p>
+                  <p className="truncate text-sm text-text-muted">
+                    {c.last_message || "No messages yet"}
+                  </p>
                 </div>
                 {c.unread_count > 0 ? (
                   <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-brand-red text-[10px] font-bold text-white">
