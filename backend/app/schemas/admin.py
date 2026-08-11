@@ -4,6 +4,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
+from app.schemas.profile import CertificationItem
+
 
 class AdminNurseOut(BaseModel):
     """A nurse as seen by an admin reviewing verification — includes the uploaded
@@ -24,6 +26,7 @@ class AdminNurseOut(BaseModel):
     profile_photo_url: str | None
     passport_photo_url: str | None
     nmc_pin_photo_url: str | None
+    certifications: list[CertificationItem] | None
     created_at: datetime
 
 

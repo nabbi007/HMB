@@ -22,6 +22,7 @@ interface AdminNurse {
   profile_photo_url: string | null
   passport_photo_url: string | null
   nmc_pin_photo_url: string | null
+  certifications: { name: string; url: string }[] | null
 }
 
 function initials(name: string): string {
@@ -189,6 +190,35 @@ export default function AdminDashboard() {
                       href={idDoc}
                     />
                   </dl>
+
+                  <div className="mt-4">
+                    <p className="text-xs font-medium tracking-wide text-text-muted uppercase">
+                      Certifications &amp; licenses
+                    </p>
+                    {n.certifications && n.certifications.length > 0 ? (
+                      <ul className="mt-1.5 flex flex-col gap-1.5">
+                        {n.certifications.map((c) => (
+                          <li
+                            key={c.url}
+                            className="flex items-center justify-between gap-3 rounded-panel bg-neutral-surface px-3 py-2 text-sm"
+                          >
+                            <span className="truncate text-text-charcoal">{c.name}</span>
+                            <a
+                              href={mediaUrl(c.url) ?? c.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="shrink-0 font-medium text-brand-red hover:underline"
+                            >
+                              View
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-1 text-sm text-text-muted">— none uploaded —</p>
+                    )}
+                  </div>
+
                   {n.bio ? <p className="mt-3 text-sm text-text-muted">{n.bio}</p> : null}
                   {n.verification_reason ? (
                     <p className="mt-3 rounded-panel bg-brand-red-tint px-3 py-2 text-sm text-brand-red">

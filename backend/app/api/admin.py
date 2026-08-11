@@ -31,6 +31,7 @@ def _admin_out(profile: NurseProfile, user: User) -> AdminNurseOut:
         profile_photo_url=profile.profile_photo_url,
         passport_photo_url=profile.passport_photo_url,
         nmc_pin_photo_url=profile.nmc_pin_photo_url,
+        certifications=profile.certifications,
         created_at=profile.created_at,
     )
 
