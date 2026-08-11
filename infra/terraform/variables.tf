@@ -61,10 +61,22 @@ variable "pin_encryption_key" {
   sensitive   = true
 }
 
-variable "smtp_user" {
-  description = "SMTP username (the Gmail address)."
+variable "smtp_host" {
+  description = "SMTP server host."
   type        = string
-  default     = "hellomamabetter@gmail.com"
+  default     = "smtp-relay.brevo.com"
+}
+
+variable "smtp_port" {
+  description = "SMTP server port (587 = STARTTLS)."
+  type        = number
+  default     = 587
+}
+
+variable "smtp_user" {
+  description = "SMTP username (Brevo SMTP login, e.g. xxxx@smtp-brevo.com)."
+  type        = string
+  default     = "b52bb7001@smtp-brevo.com"
 }
 
 variable "smtp_password" {

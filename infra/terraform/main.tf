@@ -117,6 +117,8 @@ resource "aws_instance" "this" {
     jwt_secret         = random_password.jwt.result
     pin_encryption_key = var.pin_encryption_key
     pin_index_key      = random_password.pin_index.result
+    smtp_host          = var.smtp_host
+    smtp_port          = var.smtp_port
     smtp_user          = var.smtp_user
     smtp_password      = var.smtp_password
     smtp_from          = var.smtp_from
