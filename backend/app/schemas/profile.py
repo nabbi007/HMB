@@ -15,13 +15,11 @@ class NurseProfileOut(BaseModel):
     id: uuid.UUID
     bio: str | None
     job_description: str | None
-    daily_rate: Decimal | None
     community: str | None
     latitude: Decimal | None
     longitude: Decimal | None
     languages: list[str] | None
-    religion: str | None
-    care_type: str | None
+    is_available: bool
     profile_photo_url: str | None
     passport_photo_url: str | None
     nmc_pin_photo_url: str | None
@@ -34,13 +32,12 @@ class NurseProfileOut(BaseModel):
 class NurseProfileUpdate(BaseModel):
     bio: str | None = Field(default=None, max_length=2000)
     job_description: str | None = Field(default=None, max_length=2000)
-    daily_rate: Decimal | None = Field(default=None, ge=0)
     community: str | None = Field(default=None, max_length=120)
     latitude: Decimal | None = Field(default=None, ge=-90, le=90)
     longitude: Decimal | None = Field(default=None, ge=-180, le=180)
     languages: list[str] | None = Field(default=None, max_length=10)
-    religion: str | None = Field(default=None, max_length=60)
-    care_type: str | None = Field(default=None, max_length=60)
+    # Caregivers set their availability, NOT their price (HMB controls pricing).
+    is_available: bool | None = None
     profile_photo_url: str | None = Field(default=None, max_length=500)
     passport_photo_url: str | None = Field(default=None, max_length=500)
     nmc_pin_photo_url: str | None = Field(default=None, max_length=500)
@@ -52,12 +49,10 @@ class NurseSearchResult(BaseModel):
 
     id: uuid.UUID  # the nurse's user id
     name: str
-    care_type: str | None
     bio: str | None
-    daily_rate: Decimal | None
     community: str | None
     languages: list[str]
-    religion: str | None
+    is_available: bool
     rating: Decimal
     review_count: int
     distance_km: float
@@ -71,12 +66,10 @@ class NursePublic(BaseModel):
 
     id: uuid.UUID  # the nurse's user id
     name: str
-    care_type: str | None
     bio: str | None
-    daily_rate: Decimal | None
     community: str | None
     languages: list[str]
-    religion: str | None
+    is_available: bool
     rating: Decimal
     review_count: int
     profile_photo_url: str | None

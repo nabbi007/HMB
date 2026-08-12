@@ -119,7 +119,7 @@ def test_nurse_detail_page(client: TestClient) -> None:
     client.patch(
         f"{V1}/nurses/me",
         headers=h,
-        json={"care_type": "Postpartum", "community": "Osu", "languages": ["English"]},
+        json={"community": "Osu", "languages": ["English"]},
     )
 
     db = TestingSessionLocal()
@@ -134,8 +134,9 @@ def test_nurse_detail_page(client: TestClient) -> None:
     detail = client.get(f"{V1}/nurses/{uid}", headers=_auth(mom))
     assert detail.status_code == 200
     body = detail.json()
-    assert body["care_type"] == "Postpartum"
     assert body["community"] == "Osu"
+    assert body["languages"] == ["English"]
+    assert body["is_available"] is True
 
     # Unknown id → 404.
     missing = client.get(f"{V1}/nurses/00000000-0000-0000-0000-000000000000", headers=_auth(mom))

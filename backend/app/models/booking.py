@@ -34,11 +34,12 @@ class Booking(Base):
         UUID(as_uuid=True), ForeignKey("children.id", ondelete="SET NULL"), nullable=True
     )
 
-    care_date: Mapped[date] = mapped_column(Date, nullable=False)
+    care_date: Mapped[date] = mapped_column(Date, nullable=False)  # first day
     start_time: Mapped[str] = mapped_column(String(5), nullable=False)  # "HH:MM"
-    hours: Mapped[int] = mapped_column(Integer, nullable=False)
+    hours: Mapped[int] = mapped_column(Integer, nullable=False)  # per day
+    days: Mapped[int] = mapped_column(Integer, nullable=False, default=1, server_default="1")
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # Flat daily-rate estimate at request time (real charge/escrow comes with payments).
+    # HMB-computed total (base + overage, less multi-day discount). Charged into escrow.
     estimated_amount: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
 
     status: Mapped[BookingStatus] = mapped_column(
@@ -46,6 +47,13 @@ class Booking(Base):
         nullable=False,
         default=BookingStatus.requested,
         server_default=BookingStatus.requested.value,
+    )
+    # Escrow releases only when BOTH parties confirm the assignment is complete.
+    mother_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    nurse_completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
     )
 
     created_at: Mapped[datetime] = mapped_column(

@@ -9,11 +9,11 @@ import { PlaceAutocomplete } from "@/components/common/PlaceAutocomplete"
 interface NurseProfile {
   bio: string | null
   job_description: string | null
-  daily_rate: number | string | null
   community: string | null
   latitude: number | string | null
   longitude: number | string | null
   languages: string[] | null
+  is_available: boolean
   profile_photo_url: string | null
   verification_status: string
 }
@@ -83,7 +83,6 @@ export default function Profile() {
     phone: "",
     bio: "",
     job_description: "",
-    daily_rate: "",
     community: "",
     latitude: "",
     longitude: "",
@@ -91,6 +90,8 @@ export default function Profile() {
     number_of_children: "",
     children_notes: "",
   })
+  // Caregiver availability (boolean, kept separate from the string form).
+  const [available, setAvailable] = useState(true)
 
   // Keep the editable phone field in sync with the account.
   useEffect(() => {
@@ -118,7 +119,6 @@ export default function Profile() {
           ...f,
           bio: p.bio ?? "",
           job_description: p.job_description ?? "",
-          daily_rate: p.daily_rate != null ? String(p.daily_rate) : "",
           community: p.community ?? "",
           latitude: p.latitude != null ? String(p.latitude) : "",
           longitude: p.longitude != null ? String(p.longitude) : "",
@@ -126,6 +126,7 @@ export default function Profile() {
           number_of_children: p.number_of_children != null ? String(p.number_of_children) : "",
           children_notes: p.children_notes ?? "",
         }))
+        if (typeof p.is_available === "boolean") setAvailable(p.is_available)
         if (p.profile_photo_url) setPhotoUrl(mediaUrl(p.profile_photo_url) ?? null)
       })
       .catch(() => setError("Could not load your profile."))
@@ -197,8 +198,8 @@ export default function Profile() {
           bio: form.bio || null,
           job_description: form.job_description || null,
           community: form.community || null,
+          is_available: available,
         }
-        if (form.daily_rate.trim()) payload.daily_rate = form.daily_rate.trim()
         const langs = form.languages
           .split(",")
           .map((s) => s.trim())
@@ -408,17 +409,20 @@ export default function Profile() {
                       className="mt-1.5"
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="daily_rate">Daily rate (GHS)</Label>
-                    <TextInput
-                      id="daily_rate"
-                      type="number"
-                      min="0"
-                      value={form.daily_rate}
-                      onChange={(e) => set("daily_rate", e.target.value)}
-                      placeholder="150"
-                      className="mt-1.5"
+                  <div className="rounded-panel bg-neutral-surface p-3">
+                    <ToggleSwitch
+                      checked={available}
+                      label="Available for bookings"
+                      onChange={(v) => {
+                        setAvailable(v)
+                        setSaved(false)
+                      }}
                     />
+                    <p className="mt-2 text-xs text-text-muted">
+                      Turn off if you're not taking bookings — families still see you (marked
+                      Unavailable) and can request; you choose to accept or decline. HMB sets the
+                      rate (from GHS 100 / 4 hrs), not you.
+                    </p>
                   </div>
                   <div>
                     <Label htmlFor="languages">Languages (comma-separated)</Label>

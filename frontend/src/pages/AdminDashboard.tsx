@@ -16,7 +16,6 @@ interface AdminNurse {
   community: string | null
   languages: string[]
   bio: string | null
-  daily_rate: number | string | null
   verification_status: string
   verification_reason: string | null
   profile_photo_url: string | null
@@ -180,10 +179,6 @@ export default function AdminDashboard() {
                       href={nmcDoc}
                     />
                     <Field label="Languages" value={n.languages.join(", ") || "—"} />
-                    <Field
-                      label="Rate"
-                      value={n.daily_rate != null ? `GHS ${Number(n.daily_rate)}/day` : "—"}
-                    />
                     <Field
                       label="ID document"
                       value={idDoc ? "View" : "— not submitted —"}

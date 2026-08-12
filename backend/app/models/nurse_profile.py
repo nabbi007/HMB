@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 
 from sqlalchemy import (
+    Boolean,
     DateTime,
     Enum,
     ForeignKey,
@@ -73,6 +74,11 @@ class NurseProfile(Base):
     # (replaces collecting the PIN number itself).
     nmc_pin_photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     community: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    # Caregiver's self-declared availability. When False, parents see an "Unavailable"
+    # badge but can still request a booking (the caregiver then accepts/declines).
+    is_available: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="true"
+    )
     # Approximate location (from place autocomplete). Public-facing area, not exact home.
     latitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
     longitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)

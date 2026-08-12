@@ -10,13 +10,24 @@ function todayIso() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
 }
 
+// HMB-controlled pricing (mirrors backend app/services/pricing.py). Display only;
+// the backend recomputes authoritatively when the booking is created.
+const PRICING = { base: 100, baseHours: 4, hourly: 25 }
+function priceQuote(hours: number, days: number) {
+  const perDay = PRICING.base + Math.max(0, hours - PRICING.baseHours) * PRICING.hourly
+  const subtotal = perDay * days
+  const discount = days >= 30 ? 0.15 : days >= 7 ? 0.05 : 0
+  const discountAmount = Math.round(subtotal * discount * 100) / 100
+  return { perDay, subtotal, discount, discountAmount, total: subtotal - discountAmount }
+}
+
 interface NursePublic {
   id: string
   name: string
   bio: string | null
-  daily_rate: number | string | null
   community: string | null
   languages: string[]
+  is_available: boolean
   rating: number | string
   review_count: number
   profile_photo_url: string | null
@@ -53,6 +64,7 @@ export default function CaregiverProfile() {
   const [careDate, setCareDate] = useState(todayIso())
   const [startTime, setStartTime] = useState("09:00")
   const [hours, setHours] = useState("8")
+  const [days, setDays] = useState("1")
   const [note, setNote] = useState("")
   const [children, setChildren] = useState<Child[]>([])
   const [childId, setChildId] = useState("")
@@ -81,6 +93,7 @@ export default function CaregiverProfile() {
           care_date: careDate,
           start_time: startTime,
           hours: Number(hours),
+          days: Number(days),
           note: note || null,
         },
       })
@@ -126,8 +139,8 @@ export default function CaregiverProfile() {
 
   const firstName = nurse.name.split(" ")[0]
   const rating = Number(nurse.rating)
-  const rate = nurse.daily_rate != null ? Number(nurse.daily_rate) : null
   const photo = mediaUrl(nurse.profile_photo_url)
+  const q = priceQuote(Number(hours) || 0, Number(days) || 1)
 
   return (
     <div className="h-full overflow-y-auto bg-background-offwhite">
@@ -161,6 +174,11 @@ export default function CaregiverProfile() {
                 <VerifiedIcon className="size-3.5" />
                 Verified
               </span>
+              {!nurse.is_available ? (
+                <span className="rounded-[10px] bg-verify-gold-bg px-2 py-0.5 text-xs font-medium text-verify-gold">
+                  Currently unavailable
+                </span>
+              ) : null}
             </div>
             <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-muted">
               <span className="inline-flex items-center gap-1">
@@ -177,9 +195,9 @@ export default function CaregiverProfile() {
                   Book {firstName}
                 </Button>
               ) : null}
-              {rate != null ? (
-                <span className="text-lg font-bold text-text-charcoal">GHS {rate}/day</span>
-              ) : null}
+              <span className="text-sm font-medium text-text-muted">
+                From <span className="font-bold text-text-charcoal">GHS 100</span> / 4 hrs
+              </span>
             </div>
 
             {booking ? (
@@ -192,9 +210,9 @@ export default function CaregiverProfile() {
                     {bookingErr}
                   </p>
                 ) : null}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <Label htmlFor="care-date">Date</Label>
+                    <Label htmlFor="care-date">Start date</Label>
                     <TextInput
                       id="care-date"
                       type="date"
@@ -205,7 +223,7 @@ export default function CaregiverProfile() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="start-time">Start</Label>
+                    <Label htmlFor="start-time">Daily start</Label>
                     <TextInput
                       id="start-time"
                       type="time"
@@ -215,7 +233,7 @@ export default function CaregiverProfile() {
                     />
                   </div>
                   <div>
-                    <Label htmlFor="hours">Hours</Label>
+                    <Label htmlFor="hours">Hours / day</Label>
                     <TextInput
                       id="hours"
                       type="number"
@@ -226,6 +244,42 @@ export default function CaregiverProfile() {
                       className="mt-1.5"
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="days">Number of days</Label>
+                    <TextInput
+                      id="days"
+                      type="number"
+                      min="1"
+                      max="90"
+                      value={days}
+                      onChange={(e) => setDays(e.target.value)}
+                      className="mt-1.5"
+                    />
+                  </div>
+                </div>
+
+                {/* Live price breakdown (HMB-controlled) */}
+                <div className="rounded-panel bg-neutral-surface p-3 text-sm">
+                  <div className="flex justify-between text-text-muted">
+                    <span>
+                      GHS {q.perDay} / day × {days || 1} day{Number(days) === 1 ? "" : "s"}
+                    </span>
+                    <span>GHS {q.subtotal}</span>
+                  </div>
+                  {q.discount > 0 ? (
+                    <div className="mt-1 flex justify-between text-verify-green">
+                      <span>Multi-day discount ({Math.round(q.discount * 100)}%)</span>
+                      <span>− GHS {q.discountAmount}</span>
+                    </div>
+                  ) : null}
+                  <div className="mt-2 flex justify-between border-t border-neutral-border pt-2 font-bold text-text-charcoal">
+                    <span>Total</span>
+                    <span>GHS {q.total}</span>
+                  </div>
+                  <p className="mt-1.5 text-xs text-text-muted">
+                    Base GHS 100 covers 4 hrs/day; extra hours GHS 25 each.
+                    {Number(days) < 7 ? " Book 7+ days for 5% off, 30+ for 15%." : ""}
+                  </p>
                 </div>
                 <div>
                   <Label htmlFor="child">Which child? (optional)</Label>
@@ -305,7 +359,11 @@ export default function CaregiverProfile() {
           <dl className="mt-4 flex flex-col divide-y divide-neutral-border">
             {nurse.languages.length ? <Row label="Languages" value={nurse.languages.join(", ")} /> : null}
             {nurse.community ? <Row label="Community" value={nurse.community} /> : null}
-            {rate != null ? <Row label="Rate" value={`GHS ${rate}/day`} /> : null}
+            <Row label="Rate" value="From GHS 100 / 4 hrs (HMB-set)" />
+            <Row
+              label="Availability"
+              value={nurse.is_available ? "Available" : "Currently unavailable"}
+            />
           </dl>
         </section>
 

@@ -93,17 +93,23 @@ def test_double_pay_rejected(client: TestClient) -> None:
     assert client.post(f"{V1}/bookings/{bid}/pay", headers=_auth(mom)).status_code == 409
 
 
-def test_complete_releases_payout(client: TestClient) -> None:
+def test_complete_requires_both_parties(client: TestClient) -> None:
     nurse_id, nurse_tok = _verified_nurse(client, "+233200000407", "p4@example.com")
     mom = _mother(client, "+233200000408", "pm4@example.com")
     bid = _accepted_booking(client, mom, nurse_id, nurse_tok)
     client.post(f"{V1}/bookings/{bid}/pay", headers=_auth(mom))
 
-    resp = client.post(f"{V1}/bookings/{bid}/complete", headers=_auth(nurse_tok))
-    assert resp.status_code == 200
-    body = resp.json()
-    assert body["status"] == "completed"
-    assert body["payment_status"] == "released"
+    # Caregiver confirms first — funds stay held until the parent also confirms.
+    r1 = client.post(f"{V1}/bookings/{bid}/complete", headers=_auth(nurse_tok)).json()
+    assert r1["status"] == "confirmed"
+    assert r1["nurse_completed"] is True and r1["mother_completed"] is False
+    assert r1["payment_status"] == "held"
+
+    # Parent confirms — escrow releases to the caregiver.
+    r2 = client.post(f"{V1}/bookings/{bid}/complete", headers=_auth(mom)).json()
+    assert r2["status"] == "completed"
+    assert r2["mother_completed"] is True and r2["nurse_completed"] is True
+    assert r2["payment_status"] == "released"
 
 
 def test_cannot_complete_before_payment(client: TestClient) -> None:

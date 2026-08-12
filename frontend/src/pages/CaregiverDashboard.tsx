@@ -31,6 +31,7 @@ interface Booking {
   care_date: string
   start_time: string
   hours: number
+  days: number
   note: string | null
   estimated_amount: number | string | null
   mother_user_id: string
@@ -42,6 +43,8 @@ interface Booking {
   child_age_years: number | null
   child_allergies: string | null
   child_notes: string | null
+  mother_completed: boolean
+  nurse_completed: boolean
 }
 
 const statusStyle: Record<string, string> = {
@@ -147,7 +150,8 @@ export default function CaregiverDashboard() {
                                 ) : null}
                               </div>
                               <p className="text-sm text-text-muted">
-                                {b.care_date} · {b.start_time} · {b.hours}h
+                                {b.care_date} · {b.start_time} · {b.hours}h/day
+                                {b.days > 1 ? ` · ${b.days} days` : ""}
                               </p>
                               {b.child_name ? (
                                 <p className="mt-1 text-sm text-text-charcoal">
@@ -205,14 +209,21 @@ export default function CaregiverDashboard() {
                             </div>
                           )}
                           {b.status === "confirmed" ? (
-                            <button
-                              type="button"
-                              onClick={() => markComplete(b.id)}
-                              disabled={busy === b.id}
-                              className="mt-3 w-full rounded-panel bg-verify-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
-                            >
-                              {busy === b.id ? "Processing…" : "Mark visit complete"}
-                            </button>
+                            b.nurse_completed ? (
+                              <p className="mt-3 text-xs text-text-muted">
+                                You confirmed completion — waiting for the parent to confirm before
+                                HMB releases your payout.
+                              </p>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => markComplete(b.id)}
+                                disabled={busy === b.id}
+                                className="mt-3 w-full rounded-panel bg-verify-green px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                              >
+                                {busy === b.id ? "Processing…" : "Mark visit complete"}
+                              </button>
+                            )
                           ) : null}
                           <button
                             type="button"

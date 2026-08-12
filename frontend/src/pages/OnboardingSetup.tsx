@@ -15,7 +15,6 @@ interface LoadedProfile {
   latitude: number | string | null
   longitude: number | string | null
   bio?: string | null
-  daily_rate?: number | string | null
   languages?: string[] | null
   profile_photo_url?: string | null
 }
@@ -37,7 +36,6 @@ export default function OnboardingSetup() {
   const [error, setError] = useState<string | null>(null)
 
   const [languages, setLanguages] = useState("")
-  const [dailyRate, setDailyRate] = useState("")
   const [bio, setBio] = useState("")
   const [community, setCommunity] = useState("")
   const [lat, setLat] = useState("")
@@ -57,7 +55,6 @@ export default function OnboardingSetup() {
         setLanguages(p.languages ? p.languages.join(", ") : "")
         if (isNurse) {
           setBio(p.bio ?? "")
-          setDailyRate(p.daily_rate != null ? String(p.daily_rate) : "")
           if (p.profile_photo_url) setPhotoUrl(mediaUrl(p.profile_photo_url) ?? null)
         }
       })
@@ -90,7 +87,6 @@ export default function OnboardingSetup() {
       bio: bio || null,
       languages: langs.length ? langs : null,
     }
-    if (dailyRate.trim()) body.daily_rate = dailyRate.trim()
     await api("/api/v1/nurses/me", { method: "PATCH", body, token: token ?? undefined })
   }
 
@@ -184,18 +180,9 @@ export default function OnboardingSetup() {
                   className="mt-1.5"
                 />
               </div>
-              <div>
-                <Label htmlFor="daily_rate">Daily rate (GHS)</Label>
-                <TextInput
-                  id="daily_rate"
-                  type="number"
-                  min="0"
-                  value={dailyRate}
-                  onChange={(e) => setDailyRate(e.target.value)}
-                  placeholder="150"
-                  className="mt-1.5"
-                />
-              </div>
+              <p className="rounded-panel bg-neutral-surface px-3 py-2 text-xs text-text-muted">
+                HMB sets the rate (from GHS 100 for 4 hours) — you don't set your own price.
+              </p>
               <div>
                 <Label htmlFor="bio">Short bio</Label>
                 <Textarea

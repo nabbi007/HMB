@@ -25,7 +25,6 @@ def _admin_out(profile: NurseProfile, user: User) -> AdminNurseOut:
         community=profile.community,
         languages=profile.languages or [],
         bio=profile.bio,
-        daily_rate=profile.daily_rate,
         verification_status=profile.verification_status.value,
         verification_reason=profile.verification_reason,
         profile_photo_url=profile.profile_photo_url,

@@ -64,7 +64,8 @@ def test_mother_requests_and_both_see_it(client: TestClient) -> None:
     assert created.status_code == 201
     body = created.json()
     assert body["status"] == "requested"
-    assert body["estimated_amount"] == "180.00"
+    # HMB pricing: 8h/day, 1 day = 100 + (8-4)*25 = 200.00
+    assert body["estimated_amount"] == "200.00"
 
     assert len(client.get(f"{V1}/bookings", headers=_auth(mom)).json()) == 1
     nurse_view = client.get(f"{V1}/bookings", headers=_auth(nurse_tok)).json()

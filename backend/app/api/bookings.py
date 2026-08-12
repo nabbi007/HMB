@@ -1,4 +1,5 @@
 import uuid
+from datetime import UTC, datetime
 from decimal import ROUND_HALF_UP, Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -14,6 +15,7 @@ from app.models.user import User, UserRole
 from app.schemas.booking import BookingCreate, BookingOut
 from app.services import email as email_service
 from app.services import payments as gateway
+from app.services import pricing
 
 router = APIRouter(tags=["bookings"])
 
@@ -34,9 +36,12 @@ def _booking_out(db: Session, b: Booking) -> BookingOut:
         care_date=b.care_date,
         start_time=b.start_time,
         hours=b.hours,
+        days=b.days,
         note=b.note,
         estimated_amount=b.estimated_amount,
         created_at=b.created_at,
+        mother_completed=b.mother_completed_at is not None,
+        nurse_completed=b.nurse_completed_at is not None,
         nurse_user_id=b.nurse_user_id,
         nurse_name=nurse.full_name if nurse else "",
         nurse_photo_url=profile.profile_photo_url if profile else None,
@@ -73,7 +78,7 @@ def create_booking(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="That caregiver isn't available"
         )
-    profile, nurse = row
+    _profile, nurse = row
 
     # If a child is named, it must be the mother's own.
     if data.child_id is not None:
@@ -87,6 +92,8 @@ def create_booking(
                 status_code=status.HTTP_404_NOT_FOUND, detail="Child not found"
             )
 
+    # HMB sets the price (caregivers don't). Base + overage, less any multi-day discount.
+    total = pricing.quote(data.hours, data.days)["total"]
     booking = Booking(
         mother_user_id=mother.id,
         nurse_user_id=nurse.id,
@@ -94,8 +101,9 @@ def create_booking(
         care_date=data.care_date,
         start_time=data.start_time,
         hours=data.hours,
+        days=data.days,
         note=data.note,
-        estimated_amount=profile.daily_rate,
+        estimated_amount=total,
         status=BookingStatus.requested,
     )
     db.add(booking)
@@ -228,29 +236,42 @@ def pay_booking(
 @router.post("/bookings/{booking_id}/complete", response_model=BookingOut)
 def complete_booking(
     booking_id: uuid.UUID,
-    nurse: User = Depends(require_role(UserRole.nurse)),
+    user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> BookingOut:
-    """Nurse marks a confirmed booking done; the held funds are released as a payout."""
-    b = _nurse_booking(db, nurse, booking_id)
+    """Either party confirms the assignment is complete. HMB holds the funds in escrow
+    and releases them to the caregiver ONLY once BOTH the parent and caregiver confirm."""
+    b = db.get(Booking, booking_id)
+    if b is None or user.id not in (b.mother_user_id, b.nurse_user_id):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Booking not found")
     if b.status != BookingStatus.confirmed:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail="Only a confirmed (paid) booking can be completed",
         )
-    pay = _payment(db, b.id)
-    if pay and pay.status == PaymentStatus.held:
-        pay.provider_ref = gateway.payout(float(pay.nurse_payout), str(nurse.id))
-        pay.status = PaymentStatus.released
-    b.status = BookingStatus.completed
+
+    now = datetime.now(UTC)
+    if user.id == b.mother_user_id:
+        b.mother_completed_at = b.mother_completed_at or now
+    else:
+        b.nurse_completed_at = b.nurse_completed_at or now
+
+    # Release escrow to the caregiver only when BOTH sides have confirmed.
+    if b.mother_completed_at and b.nurse_completed_at:
+        pay = _payment(db, b.id)
+        if pay and pay.status == PaymentStatus.held:
+            pay.provider_ref = gateway.payout(float(pay.nurse_payout), str(b.nurse_user_id))
+            pay.status = PaymentStatus.released
+            nurse = db.get(User, b.nurse_user_id)
+            if nurse and nurse.email:
+                try:
+                    email_service.send_payout_email(nurse.email, str(pay.nurse_payout))
+                except Exception:  # noqa: BLE001
+                    pass
+        b.status = BookingStatus.completed
+
     db.commit()
     db.refresh(b)
-
-    if nurse.email and pay:
-        try:
-            email_service.send_payout_email(nurse.email, str(pay.nurse_payout))
-        except Exception:  # noqa: BLE001
-            pass
     return _booking_out(db, b)
 
 

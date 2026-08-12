@@ -15,9 +15,9 @@ const ACCRA = { lng: -0.1869, lat: 5.6037 }
 interface NurseResult {
   id: string
   name: string
-  daily_rate: number | string | null
   community: string | null
   languages: string[]
+  is_available: boolean
   rating: number | string
   review_count: number
   distance_km: number
@@ -143,7 +143,14 @@ export default function Home() {
               <Avatar nurse={n} size="size-12" />
             </span>
             <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <p className="truncate text-lg font-semibold text-text-charcoal">{n.name}</p>
+              <div className="flex items-center gap-2">
+                <p className="truncate text-lg font-semibold text-text-charcoal">{n.name}</p>
+                {!n.is_available ? (
+                  <span className="shrink-0 rounded-[8px] bg-verify-gold-bg px-1.5 py-0.5 text-[10px] font-medium text-verify-gold">
+                    Unavailable
+                  </span>
+                ) : null}
+              </div>
               <p className="truncate text-sm text-text-muted">
                 Caregiver{n.community ? ` · ${n.community}` : ""}
               </p>
@@ -151,7 +158,6 @@ export default function Home() {
                 <StarIcon className="size-3.5 text-verify-gold" />
                 {Number(n.rating) > 0 ? Number(n.rating).toFixed(1) : "New"} ({n.review_count}) ·{" "}
                 {n.distance_km} km
-                {n.daily_rate != null ? ` · GHS ${Number(n.daily_rate)}/day` : ""}
               </p>
             </div>
           </Link>

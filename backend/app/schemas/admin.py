@@ -1,6 +1,5 @@
 import uuid
 from datetime import datetime
-from decimal import Decimal
 
 from pydantic import BaseModel, Field
 
@@ -20,7 +19,6 @@ class AdminNurseOut(BaseModel):
     community: str | None
     languages: list[str]
     bio: str | None
-    daily_rate: Decimal | None
     verification_status: str
     verification_reason: str | None
     profile_photo_url: str | None

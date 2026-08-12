@@ -10,6 +10,7 @@ interface Booking {
   care_date: string
   start_time: string
   hours: number
+  days: number
   estimated_amount: number | string | null
   nurse_user_id: string
   nurse_name: string
@@ -18,6 +19,8 @@ interface Booking {
   hmb_fee: number | string | null
   nurse_payout: number | string | null
   child_name: string | null
+  mother_completed: boolean
+  nurse_completed: boolean
 }
 
 const statusStyle: Record<string, string> = {
@@ -77,6 +80,16 @@ export default function Bookings() {
     }
   }
 
+  async function complete(id: string) {
+    setBusy(id)
+    try {
+      await api(`/api/v1/bookings/${id}/complete`, { method: "POST", token: token ?? undefined })
+      load()
+    } finally {
+      setBusy(null)
+    }
+  }
+
   return (
     <div className="h-full overflow-y-auto bg-background-offwhite">
       <div className="mx-auto max-w-3xl px-6 py-8 md:px-10 md:py-10">
@@ -109,7 +122,8 @@ export default function Bookings() {
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-text-charcoal">{b.nurse_name}</p>
                       <p className="text-sm text-text-muted">
-                        {b.care_date} · {b.start_time} · {b.hours}h
+                        {b.care_date} · {b.start_time} · {b.hours}h/day
+                        {b.days > 1 ? ` · ${b.days} days` : ""}
                         {b.estimated_amount != null ? ` · GHS ${Number(b.estimated_amount)}` : ""}
                       </p>
                       {b.child_name ? (
@@ -125,9 +139,19 @@ export default function Bookings() {
                       {statusLabel[b.status] ?? b.status}
                     </span>
                   </div>
-                  {b.status === "confirmed" && b.hmb_fee != null ? (
+                  {b.status === "confirmed" ? (
                     <p className="mt-2 text-xs text-text-muted">
-                      Paid · held securely until the visit is complete
+                      Paid · held in HMB escrow.{" "}
+                      {b.mother_completed
+                        ? "You confirmed completion — waiting for the caregiver to confirm before the payment is released."
+                        : b.nurse_completed
+                          ? "The caregiver marked it complete — confirm below to release the payment."
+                          : "Released to the caregiver once both of you mark it complete."}
+                    </p>
+                  ) : null}
+                  {b.status === "completed" ? (
+                    <p className="mt-2 text-xs text-verify-green">
+                      Completed · payment released to the caregiver.
                     </p>
                   ) : null}
                   <div className="mt-3 flex gap-4">
@@ -150,6 +174,16 @@ export default function Bookings() {
                         {busy === b.id
                           ? "Processing…"
                           : `Pay${b.estimated_amount != null ? ` GHS ${Number(b.estimated_amount)}` : ""}`}
+                      </button>
+                    ) : null}
+                    {b.status === "confirmed" && !b.mother_completed ? (
+                      <button
+                        type="button"
+                        onClick={() => complete(b.id)}
+                        disabled={busy === b.id}
+                        className="text-sm font-semibold text-verify-green hover:underline disabled:opacity-50"
+                      >
+                        {busy === b.id ? "Processing…" : "Mark complete"}
                       </button>
                     ) : null}
                     {b.status === "requested" ||
