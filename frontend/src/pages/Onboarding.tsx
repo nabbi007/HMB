@@ -34,7 +34,7 @@ export default function Onboarding() {
   }
 
   return (
-    <AuthLayout title="How will you use HelloMama?" subtitle="Choose the option that fits you best.">
+    <AuthLayout title="How will you use HelloMamaBetter?" subtitle="Choose the option that fits you best.">
       <div className="flex flex-col gap-4">
         {roles.map((option) => (
           <button

@@ -21,7 +21,7 @@ export function VerificationGate({ name }: { name?: string }) {
         {name ? `Welcome, ${name}! ` : ""}Your account is under review
       </h2>
       <p className="mx-auto mt-2 max-w-md text-sm text-text-muted">
-        Welcome to HelloMama! Before you can receive bookings, appear in search, or
+        Welcome to HelloMamaBetter! Before you can receive bookings, appear in search, or
         message families, HMB needs to verify your identity and your Nursing &amp;
         Midwifery Council PIN. You can set up the rest of your profile in the meantime.
       </p>

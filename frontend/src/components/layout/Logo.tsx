@@ -1,25 +1,29 @@
 import { cn } from "@/lib/utils"
 
-// The logo file is a single solid-fill SVG (baked-in red), so it's applied as a
-// mask rather than an <img> — that lets us recolor it per theme (brand red in
-// light mode, white in dark mode) instead of being stuck with the file's own fill.
+// Text wordmark for the full brand name. (The old script SVG only spelled
+// "HelloMama" as vector art and couldn't be extended to "…Better", so the
+// wordmark is rendered as styled text — theme-aware, brand-red in light mode.)
 export function Logo({ className }: { className?: string }) {
+  const sizeClass = className?.includes("h-9")
+    ? "text-3xl"
+    : className?.includes("h-8")
+      ? "text-2xl"
+      : className?.includes("h-7")
+        ? "text-xl"
+        : className?.includes("h-6")
+          ? "text-lg"
+          : "text-2xl"
+
   return (
     <span
       role="img"
-      aria-label="HelloMama"
-      className={cn("inline-block h-8 w-auto bg-brand-red dark:bg-white", className)}
-      style={{
-        aspectRatio: "374 / 96",
-        maskImage: "url(/HMB%20Logo.svg)",
-        maskRepeat: "no-repeat",
-        maskPosition: "left center",
-        maskSize: "contain",
-        WebkitMaskImage: "url(/HMB%20Logo.svg)",
-        WebkitMaskRepeat: "no-repeat",
-        WebkitMaskPosition: "left center",
-        WebkitMaskSize: "contain",
-      }}
-    />
+      aria-label="HelloMamaBetter"
+      className={cn(
+        "inline-block leading-none font-extrabold tracking-tight whitespace-nowrap text-brand-red dark:text-white",
+        sizeClass
+      )}
+    >
+      HelloMama<span className="text-text-charcoal dark:text-white/85">Better</span>
+    </span>
   )
 }

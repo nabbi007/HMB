@@ -20,7 +20,7 @@ export function Sidebar() {
 
   return (
     <nav className="z-20 hidden w-[76px] shrink-0 flex-col items-center gap-2 bg-[#151517] py-5 md:flex">
-      <NavLink to={homeTo} aria-label="HelloMama" className="mb-4">
+      <NavLink to={homeTo} aria-label="HelloMamaBetter" className="mb-4">
         <img src="/HMB%20favicon.svg" alt="" className="size-10" />
       </NavLink>
 

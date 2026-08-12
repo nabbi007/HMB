@@ -35,7 +35,7 @@ export default function WriteFamilyReview() {
 
         <h1 className="text-xl font-bold text-text-charcoal md:text-2xl">Rate this family</h1>
         <p className="mt-1 text-sm text-text-muted">
-          Your feedback stays on file with HelloMama and helps other caregivers know what to expect.
+          Your feedback stays on file with HelloMamaBetter and helps other caregivers know what to expect.
         </p>
 
         <div className="mt-6">
