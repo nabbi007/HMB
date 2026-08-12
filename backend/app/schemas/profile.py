@@ -83,6 +83,7 @@ class MotherProfileOut(BaseModel):
     latitude: Decimal | None
     longitude: Decimal | None
     languages: list[str] | None
+    profile_photo_url: str | None
     number_of_children: int | None
     children_notes: str | None
     avg_rating: Decimal
@@ -94,5 +95,6 @@ class MotherProfileUpdate(BaseModel):
     latitude: Decimal | None = Field(default=None, ge=-90, le=90)
     longitude: Decimal | None = Field(default=None, ge=-180, le=180)
     languages: list[str] | None = Field(default=None, max_length=10)
+    profile_photo_url: str | None = Field(default=None, max_length=500)
     number_of_children: int | None = Field(default=None, ge=0, le=20)
     children_notes: str | None = Field(default=None, max_length=2000)

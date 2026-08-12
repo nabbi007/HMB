@@ -69,7 +69,7 @@ export default function Profile() {
     setError(null)
     try {
       const { url } = await uploadFile(file, token ?? undefined)
-      await api("/api/v1/nurses/me", {
+      await api(isNurse ? "/api/v1/nurses/me" : "/api/v1/mothers/me", {
         method: "PATCH",
         body: { profile_photo_url: url },
         token: token ?? undefined,
@@ -261,25 +261,21 @@ export default function Profile() {
                 {initials(name)}
               </span>
             )}
-            {isNurse ? (
-              <>
-                <input
-                  ref={photoInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={changePhoto}
-                />
-                <button
-                  type="button"
-                  onClick={() => photoInputRef.current?.click()}
-                  aria-label="Change profile photo"
-                  className="absolute right-0 bottom-0 flex size-7 items-center justify-center rounded-full bg-brand-red text-white ring-2 ring-background-white transition-opacity hover:opacity-90"
-                >
-                  <UploadIcon className="size-3.5" />
-                </button>
-              </>
-            ) : null}
+            <input
+              ref={photoInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={changePhoto}
+            />
+            <button
+              type="button"
+              onClick={() => photoInputRef.current?.click()}
+              aria-label="Change profile photo"
+              className="absolute right-0 bottom-0 flex size-7 items-center justify-center rounded-full bg-brand-red text-white ring-2 ring-background-white transition-opacity hover:opacity-90"
+            >
+              <UploadIcon className="size-3.5" />
+            </button>
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center justify-center gap-2 md:justify-start">

@@ -28,6 +28,7 @@ class MotherProfile(Base):
     longitude: Mapped[float | None] = mapped_column(Numeric(9, 6), nullable=True)
     # Languages she speaks (for matching with caregivers who share a language).
     languages: Mapped[list[str] | None] = mapped_column(ARRAY(String), nullable=True)
+    profile_photo_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
     # --- Sensitive: information about minors. API-gated (mother / matched nurse / admin). ---
     number_of_children: Mapped[int | None] = mapped_column(Integer, nullable=True)
