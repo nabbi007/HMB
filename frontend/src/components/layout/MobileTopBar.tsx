@@ -3,11 +3,16 @@ import { NavLink } from "react-router-dom"
 import { MoonIcon, SunIcon } from "@/lib/icons"
 import { cn } from "@/lib/utils"
 import { initialsAvatarTheme } from "@/lib/avatar-theme"
+import { mediaUrl } from "@/lib/api"
+import { useRole } from "@/lib/role-context"
 import { Logo } from "./Logo"
 import { navIconButtonClass } from "./NavIconButton"
 import { NotificationsPopover } from "./NotificationsPopover"
 
 export function MobileTopBar() {
+  const { user } = useRole()
+  const photo = mediaUrl(user?.profile_photo_url)
+  const initial = user?.full_name?.[0]?.toUpperCase() ?? "?"
   return (
     <header className="z-20 flex h-[60px] w-full shrink-0 items-center justify-between border-b border-neutral-border bg-background-white px-5 md:hidden">
       <Logo className="h-6" />
@@ -25,7 +30,13 @@ export function MobileTopBar() {
         />
 
         <NavLink to="/profile" aria-label="Profile" className="ml-1">
-          <Avatar rounded size="sm" placeholderInitials="A" theme={initialsAvatarTheme("bg-brand-red")} />
+          <Avatar
+            rounded
+            size="sm"
+            img={photo ?? undefined}
+            placeholderInitials={initial}
+            theme={initialsAvatarTheme("bg-brand-red")}
+          />
         </NavLink>
       </div>
     </header>

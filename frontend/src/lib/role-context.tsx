@@ -24,6 +24,7 @@ interface BackendUser {
   is_active: boolean
   phone_verified: boolean
   verification_status: string | null
+  profile_photo_url: string | null
 }
 
 export interface SignupInput {

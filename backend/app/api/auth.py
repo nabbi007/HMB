@@ -120,10 +120,16 @@ def refresh(data: RefreshRequest, db: Session = Depends(get_db)) -> TokenRespons
 
 def _user_out(db: Session, user: User) -> UserOut:
     verification_status: str | None = None
+    photo_url: str | None = None
     if user.role == UserRole.nurse:
         profile = db.query(NurseProfile).filter(NurseProfile.user_id == user.id).first()
         if profile is not None:
             verification_status = profile.verification_status.value
+            photo_url = profile.profile_photo_url
+    elif user.role == UserRole.mother:
+        mprofile = db.query(MotherProfile).filter(MotherProfile.user_id == user.id).first()
+        if mprofile is not None:
+            photo_url = mprofile.profile_photo_url
     return UserOut(
         id=user.id,
         first_name=user.first_name,
@@ -135,6 +141,7 @@ def _user_out(db: Session, user: User) -> UserOut:
         is_active=user.is_active,
         phone_verified=user.phone_verified,
         verification_status=verification_status,
+        profile_photo_url=photo_url,
     )
 
 

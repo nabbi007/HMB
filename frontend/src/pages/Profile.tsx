@@ -75,10 +75,12 @@ export default function Profile() {
         token: token ?? undefined,
       })
       setPhotoUrl(mediaUrl(url) ?? null)
+      await refreshUser() // update the header avatar app-wide
     } catch (err) {
       setError(err instanceof ApiError ? err.detail : "Couldn't update photo.")
     }
   }
+
   const [form, setForm] = useState({
     phone: "",
     bio: "",

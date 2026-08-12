@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom"
 import { MoonIcon, SunIcon } from "@/lib/icons"
 import { cn } from "@/lib/utils"
 import { initialsAvatarTheme } from "@/lib/avatar-theme"
+import { mediaUrl } from "@/lib/api"
 import { useRole } from "@/lib/role-context"
 import { useUnread } from "@/lib/unread-context"
 import { NotificationsPopover } from "./NotificationsPopover"
@@ -17,6 +18,7 @@ export function Sidebar() {
   const navLinks = getNavLinks(role, isVerifiedCaregiver)
   const homeTo = role === "caregiver" ? "/dashboard" : "/"
   const initial = user?.full_name?.[0]?.toUpperCase() ?? "?"
+  const photo = mediaUrl(user?.profile_photo_url)
 
   return (
     <nav className="z-20 hidden w-[76px] shrink-0 flex-col items-center gap-2 bg-[#151517] py-5 md:flex">
@@ -69,6 +71,7 @@ export function Sidebar() {
             rounded
             size="sm"
             status="online"
+            img={photo ?? undefined}
             placeholderInitials={initial}
             theme={initialsAvatarTheme("bg-brand-red")}
           />

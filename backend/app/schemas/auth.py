@@ -95,3 +95,4 @@ class UserOut(BaseModel):
     phone_verified: bool
     # Nurse HMB-verification status (None for mothers/admins). Drives the frontend gate.
     verification_status: str | None = None
+    profile_photo_url: str | None = None
