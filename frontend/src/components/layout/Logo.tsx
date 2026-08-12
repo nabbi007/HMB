@@ -23,7 +23,7 @@ export function Logo({ className }: { className?: string }) {
         sizeClass
       )}
     >
-      HelloMama<span className="text-text-charcoal dark:text-white/85">Better</span>
+      HelloMamaBetter
     </span>
   )
 }
